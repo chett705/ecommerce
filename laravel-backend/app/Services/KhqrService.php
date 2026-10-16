@@ -64,6 +64,7 @@ class KhqrService
             'transaction_id' => $transactionId,
             'amount' => $formattedAmount,
             'currency' => 'USD',
+            'merchant_name' => 'dyzz',
             'remark' => $cleanRemark,
             'hash' => $hash,
             'profile_id' => $this->profileId,

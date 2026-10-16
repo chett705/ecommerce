@@ -172,6 +172,46 @@
   ],
   "orders": [
     {
+      "id": "SYN-KHQR-QVXAFF-1792164395938",
+      "order_number": "SYN-KHQR-QVXAFF-1792164395938",
+      "customer_name": "Test Buyer",
+      "customerName": "Test Buyer",
+      "customer_email": "buyer@test.com",
+      "customerEmail": "buyer@test.com",
+      "company": "",
+      "items": [
+        "Pro AI Suite"
+      ],
+      "amount": 49,
+      "payment_method": "KHQR Direct Gateway",
+      "paymentMethod": "KHQR Direct Gateway",
+      "merchant_name": "dyzz",
+      "abaLink": "https://khqr.cc/api/payment/requestv2/tW6PHjgPyzISFi3KK22hKZ57rag1cWHS?transaction_id=SYN-KHQR-QVXAFF-1792164395938&amount=49.00&remark=KHQR_64395938&hash=f7b57fa0323bcbe98fe4c0df6593a634307a0a1b",
+      "status": "Pending Payment",
+      "date": "2026-10-16 15:26",
+      "apiKey": "sk_synapse_live_a5e821ac0fdfdc1b2262797f6c89"
+    },
+    {
+      "id": "SYN-ABA-OAT6WB-1792164347613",
+      "order_number": "SYN-ABA-OAT6WB-1792164347613",
+      "customer_name": "Test Buyer",
+      "customerName": "Test Buyer",
+      "customer_email": "buyer@test.com",
+      "customerEmail": "buyer@test.com",
+      "company": "",
+      "items": [
+        "Pro AI Suite"
+      ],
+      "amount": 49,
+      "payment_method": "ABA PayWay",
+      "paymentMethod": "ABA PayWay",
+      "merchant_name": "BUNTHOEUN CHETRA",
+      "abaLink": "https://link.payway.com.kh/ABAPAY9s540501U",
+      "status": "Pending Payment",
+      "date": "2026-10-16 15:25",
+      "apiKey": "sk_synapse_live_51d36d1520330cda0aeee7c16ab2"
+    },
+    {
       "id": "SYN-ORD-1285",
       "customerName": "Alex Vance",
       "customerEmail": "alex@venturelabs.ai",

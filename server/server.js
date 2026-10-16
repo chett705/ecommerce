@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import fs from 'fs';
 import path from 'path';
+import crypto from 'crypto';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -225,6 +226,37 @@ app.post('/api/orders', (req, res) => {
   res.status(201).json({ success: true, order: newOrder, apiKey });
 });
 
+app.get('/api/orders/:id', (req, res) => {
+  const db = readDB();
+  const order = db.orders.find(o => o.id === req.params.id || o.order_number === req.params.id || o.orderNumber === req.params.id);
+  if (!order) {
+    return res.status(404).json({ success: false, message: 'Order not found' });
+  }
+  res.json({ success: true, order });
+});
+
+app.put('/api/orders/:id/activate', (req, res) => {
+  const db = readDB();
+  const orderIndex = db.orders.findIndex(o => o.id === req.params.id || o.order_number === req.params.id || o.orderNumber === req.params.id);
+  if (orderIndex === -1) {
+    return res.status(404).json({ success: false, message: 'Order not found' });
+  }
+
+  const activationLink = req.body.activation_link || req.body.activationLink;
+  const activationNote = req.body.activation_note || req.body.activationNote;
+  
+  db.orders[orderIndex].activation_link = activationLink;
+  db.orders[orderIndex].activationLink = activationLink;
+  if (activationNote) {
+    db.orders[orderIndex].activation_note = activationNote;
+  }
+  db.orders[orderIndex].status = req.body.status || 'Activated';
+  db.orders[orderIndex].activated_at = new Date().toISOString();
+  
+  writeDB(db);
+  res.json({ success: true, message: 'Activation link published successfully to user!', order: db.orders[orderIndex] });
+});
+
 app.put('/api/orders/:id/status', (req, res) => {
   const db = readDB();
   const orderIndex = db.orders.findIndex(o => o.id === req.params.id);
@@ -233,6 +265,9 @@ app.put('/api/orders/:id/status', (req, res) => {
   }
 
   db.orders[orderIndex].status = req.body.status || 'Verified';
+  if (req.body.activation_link || req.body.activationLink) {
+    db.orders[orderIndex].activation_link = req.body.activation_link || req.body.activationLink;
+  }
   writeDB(db);
   res.json({ success: true, order: db.orders[orderIndex] });
 });
@@ -262,6 +297,98 @@ app.put('/api/subscribers/:id/tokens', (req, res) => {
 
   writeDB(db);
   res.json({ success: true, subscriber: db.subscribers[subIndex] });
+});
+
+// Dynamic KHQR & ABA Payment Generation & Verification
+app.post('/api/payment/khqr/generate', (req, res) => {
+  const db = readDB();
+  const amount = Number(req.body.amount) || 1.0;
+  const rawMethod = req.body.paymentMethod || req.body.payment_method || 'khqr';
+  const isAba = /aba|payway/i.test(rawMethod);
+  const methodTitle = isAba ? 'ABA PayWay' : 'KHQR Direct Gateway';
+
+  const prefix = isAba ? 'SYN-ABA-' : 'SYN-KHQR-';
+  const transactionId = req.body.transaction_id || `${prefix}${Math.random().toString(36).substring(2, 8).toUpperCase()}-${Date.now()}`;
+  const defaultRemark = isAba 
+    ? `ABA_PAY_${transactionId.replace(/[^A-Za-z0-9]/g, '').slice(-8)}`
+    : `KHQR_${transactionId.replace(/[^A-Za-z0-9]/g, '').slice(-8)}`;
+  const remark = req.body.remark || defaultRemark;
+
+  const profileId = db.settings?.khqrProfileId || 'tW6PHjgPyzISFi3KK22hKZ57rag1cWHS';
+  const secretKey = db.settings?.khqrSecretKey || 'zsFq7SWHV4gYFSAdfg2ud8WV747tBOei';
+  const paywayLink = db.settings?.abaPayLink || 'https://link.payway.com.kh/ABAPAY9s540501U';
+
+  const formattedAmount = Number(amount).toFixed(2);
+  const rawHashString = `${secretKey}${transactionId}${formattedAmount}${remark}`;
+  const hash = crypto.createHash('sha1').update(rawHashString).digest('hex');
+
+  const khqrBaseUrl = `https://khqr.cc/api/payment/requestv2/${profileId}`;
+  const khqrQuery = new URLSearchParams({
+    transaction_id: transactionId,
+    amount: formattedAmount,
+    remark: remark,
+    hash: hash
+  }).toString();
+
+  const checkoutUrl = isAba ? paywayLink : `${khqrBaseUrl}?${khqrQuery}`;
+  const iframeUrl = isAba ? paywayLink : `${checkoutUrl}&iframe=1`;
+  const merchantName = isAba ? 'BUNTHOEUN CHETRA' : 'dyzz';
+
+  // Pre-create or update order in db
+  const newOrder = {
+    id: transactionId,
+    order_number: transactionId,
+    customer_name: req.body.customerName || 'Customer',
+    customerName: req.body.customerName || 'Customer',
+    customer_email: req.body.customerEmail || 'user@example.com',
+    customerEmail: req.body.customerEmail || 'user@example.com',
+    company: req.body.company || '',
+    items: req.body.items || ['Pro AI Suite'],
+    amount: amount,
+    payment_method: methodTitle,
+    paymentMethod: methodTitle,
+    merchant_name: merchantName,
+    abaLink: checkoutUrl,
+    status: 'Pending Payment',
+    date: new Date().toISOString().replace('T', ' ').slice(0, 16),
+    apiKey: `sk_synapse_live_${crypto.randomBytes(14).toString('hex')}`
+  };
+  db.orders.unshift(newOrder);
+  writeDB(db);
+
+  res.json({
+    success: true,
+    message: 'Payment request generated successfully',
+    transaction_id: transactionId,
+    amount: formattedAmount,
+    currency: 'USD',
+    merchant_name: merchantName,
+    remark: remark,
+    hash: hash,
+    profile_id: profileId,
+    checkout_url: checkoutUrl,
+    iframe_url: iframeUrl,
+    order_id: transactionId,
+    order_number: transactionId,
+    order: newOrder
+  });
+});
+
+app.get('/api/payment/khqr/verify/:id', (req, res) => {
+  const db = readDB();
+  const orderIndex = db.orders.findIndex(o => o.id === req.params.id || o.order_number === req.params.id);
+  if (orderIndex === -1) {
+    return res.status(404).json({ success: false, message: 'Transaction not found' });
+  }
+  db.orders[orderIndex].status = 'Verified';
+  writeDB(db);
+  res.json({
+    success: true,
+    status: 'Verified',
+    message: 'Payment verified successfully',
+    order: db.orders[orderIndex],
+    api_key: db.orders[orderIndex].apiKey || `sk_synapse_live_${crypto.randomBytes(14).toString('hex')}`
+  });
 });
 
 app.listen(PORT, () => {

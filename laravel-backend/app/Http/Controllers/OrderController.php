@@ -73,10 +73,58 @@ class OrderController extends Controller
         ], 201);
     }
 
+    public function show(string $idOrNumber): JsonResponse
+    {
+        $order = Order::where('id', $idOrNumber)
+            ->orWhere('order_number', $idOrNumber)
+            ->first();
+
+        if (!$order) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Order not found',
+            ], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'order' => $order,
+        ]);
+    }
+
+    public function activate(Request $request, $id): JsonResponse
+    {
+        $order = Order::findOrFail($id);
+
+        $validated = $request->validate([
+            'activation_link' => 'required|string',
+            'activation_note' => 'nullable|string',
+            'status' => 'nullable|string',
+        ]);
+
+        $order->activation_link = $validated['activation_link'];
+        if (isset($validated['activation_note'])) {
+            $order->activation_note = $validated['activation_note'];
+        }
+        $order->status = $validated['status'] ?? 'Activated';
+        $order->activated_at = now();
+        $order->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Activation link published successfully to user!',
+            'order' => $order,
+        ]);
+    }
+
     public function updateStatus(Request $request, $id): JsonResponse
     {
         $order = Order::findOrFail($id);
         $order->status = $request->input('status', 'Verified');
+        if ($request->has('activation_link')) {
+            $order->activation_link = $request->input('activation_link');
+            $order->activated_at = now();
+        }
         $order->save();
 
         return response()->json([

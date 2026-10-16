@@ -39,7 +39,11 @@ import {
   Code2,
   Mic,
   Video,
-  Headphones
+  Headphones,
+  BellRing,
+  Send,
+  Key,
+  X
 } from 'lucide-react';
 
 export default function AdminPanel({ onCloseAdmin, onLogout }) {
@@ -103,6 +107,36 @@ export default function AdminPanel({ onCloseAdmin, onLogout }) {
     display_order: 1
   });
 
+  // Activation Modal State
+  const [isActivateModalOpen, setIsActivateModalOpen] = useState(false);
+  const [activatingOrder, setActivatingOrder] = useState(null);
+  const [activationInput, setActivationInput] = useState('');
+  const [activationNoteInput, setActivationNoteInput] = useState('');
+  const [activatingLoading, setActivatingLoading] = useState(false);
+  const [prevOrderCount, setPrevOrderCount] = useState(0);
+
+  // Audio Chime synthesizer for new incoming order alerts
+  const playNotificationChime = () => {
+    try {
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContext) return;
+      const ctx = new AudioContext();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
+      osc.frequency.setValueAtTime(880, ctx.currentTime + 0.12); // A5
+      gain.gain.setValueAtTime(0.18, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.38);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.38);
+    } catch (e) {
+      console.warn('Audio alert note:', e);
+    }
+  };
+
   // Filters
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState('all');
@@ -138,6 +172,67 @@ export default function AdminPanel({ onCloseAdmin, onLogout }) {
   useEffect(() => {
     loadBackendData();
   }, []);
+
+  // Real-time polling for new orders with audio chime alert
+  useEffect(() => {
+    const pollTimer = setInterval(async () => {
+      try {
+        const res = await fetch('/api/orders');
+        const data = await res.json();
+        if (data?.orders) {
+          if (prevOrderCount > 0 && data.orders.length > prevOrderCount) {
+            const newest = data.orders[0];
+            playNotificationChime();
+            addToast(`🔔 New Order from ${newest.customer_name || 'Customer'} ($${newest.amount})! Click to publish activation link.`, 'warning');
+          }
+          setPrevOrderCount(data.orders.length);
+          setOrders(data.orders);
+        }
+      } catch (_) {}
+    }, 4000);
+    return () => clearInterval(pollTimer);
+  }, [prevOrderCount]);
+
+  const pendingActivationCount = orders.filter(
+    o => (!o.activation_link || o.status === 'Pending Activation' || o.status === 'Pending PayWay Checkout') && o.status !== 'Refunded'
+  ).length;
+
+  const handleOpenActivateModal = (order) => {
+    setActivatingOrder(order);
+    setActivationInput(order.activation_link || `https://t.me/synapse_ai_bot?start=act_${order.order_number || order.id}`);
+    setActivationNoteInput(order.activation_note || 'Your premium workspace license has been activated! Click above to access your tools.');
+    setIsActivateModalOpen(true);
+  };
+
+  const handleSubmitActivationLink = async (e) => {
+    e.preventDefault();
+    if (!activatingOrder || !activationInput.trim()) return;
+    setActivatingLoading(true);
+
+    try {
+      const res = await fetch(`/api/orders/${activatingOrder.id}/activate`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          activation_link: activationInput.trim(),
+          activation_note: activationNoteInput.trim(),
+          status: 'Activated'
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setOrders(prev => prev.map(o => o.id === activatingOrder.id ? (data.order || { ...o, activation_link: activationInput.trim(), status: 'Activated' }) : o));
+        addToast(`🎉 Activation link published to ${activatingOrder.customer_name || 'Customer'}! User screen updated.`, 'success');
+        setIsActivateModalOpen(false);
+      } else {
+        addToast(data.message || 'Failed to publish activation link', 'error');
+      }
+    } catch (err) {
+      addToast('Network error publishing activation link', 'error');
+    } finally {
+      setActivatingLoading(false);
+    }
+  };
 
   // --- Category CRUD Operations ---
   const handleOpenAddCategory = () => {
@@ -477,6 +572,11 @@ export default function AdminPanel({ onCloseAdmin, onLogout }) {
               >
                 <ShoppingCart size={18} />
                 <span>Orders & ABA PAY ({orders.length})</span>
+                {pendingActivationCount > 0 && (
+                  <span className="badge-pending-order-count">
+                    {pendingActivationCount} NEW
+                  </span>
+                )}
               </button>
 
               <button
@@ -517,6 +617,23 @@ export default function AdminPanel({ onCloseAdmin, onLogout }) {
 
           {/* Main Content Area */}
           <main className="admin-content-area">
+            {/* Global Real-Time New Order Alert Banner */}
+            {pendingActivationCount > 0 && (
+              <div className="admin-pending-alert-banner">
+                <div className="alert-content">
+                  <span className="pulse-alert-ring"></span>
+                  <BellRing size={20} className="text-warning spin-subtle" />
+                  <div>
+                    <strong>{pendingActivationCount} Order{pendingActivationCount > 1 ? 's' : ''} Awaiting Your Activation Link!</strong>
+                    <p>Customer completed payment and is waiting for you to publish their activation link.</p>
+                  </div>
+                </div>
+                <button className="btn btn-warning btn-sm btn-glow" onClick={() => setActiveTab('orders')}>
+                  <Zap size={14} className="mr-1 inline" /> Publish Activation Links Now →
+                </button>
+              </div>
+            )}
+
             {/* TAB 1: OVERVIEW */}
             {activeTab === 'overview' && (
               <div className="admin-tab-pane">
@@ -908,7 +1025,7 @@ export default function AdminPanel({ onCloseAdmin, onLogout }) {
                         <th>Amount</th>
                         <th>Payment Method</th>
                         <th>Status</th>
-                        <th>API Key Issued</th>
+                        <th>Activation Link (To Customer)</th>
                         <th>Actions</th>
                       </tr>
                     </thead>
@@ -941,21 +1058,61 @@ export default function AdminPanel({ onCloseAdmin, onLogout }) {
                             </span>
                           </td>
                           <td>
-                            <code className="text-cyan text-xs">
-                              {(o.api_key || o.apiKey) ? `${(o.api_key || o.apiKey).substring(0, 16)}...` : 'Generated'}
-                            </code>
+                            {o.activation_link ? (
+                              <div className="activation-table-cell">
+                                <span className="badge-activated-pill">
+                                  <CheckCircle2 size={11} className="inline mr-1" /> Active
+                                </span>
+                                <div className="link-preview-box">
+                                  <a href={o.activation_link} target="_blank" rel="noopener noreferrer" className="activation-table-link">
+                                    <span>{o.activation_link}</span>
+                                    <ExternalLink size={11} className="inline ml-1" />
+                                  </a>
+                                  <button
+                                    type="button"
+                                    className="btn-copy-mini"
+                                    onClick={() => {
+                                      navigator.clipboard.writeText(o.activation_link);
+                                      addToast('Activation link copied!', 'info');
+                                    }}
+                                    title="Copy Link"
+                                  >
+                                    <Copy size={11} />
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              <button
+                                type="button"
+                                className="btn btn-warning btn-xs btn-glow"
+                                onClick={() => handleOpenActivateModal(o)}
+                              >
+                                <Zap size={12} className="mr-1" /> Publish Link
+                              </button>
+                            )}
                           </td>
                           <td>
-                            <select
-                              className="status-select-sm"
-                              value={o.status || 'Verified'}
-                              onChange={(e) => handleUpdateOrderStatus(o.id, e.target.value)}
-                            >
-                              <option value="Verified">Verified</option>
-                              <option value="Pending KHQR Payment">Pending KHQR</option>
-                              <option value="Pending PayWay Checkout">Pending PayWay</option>
-                              <option value="Refunded">Refunded</option>
-                            </select>
+                            <div className="table-actions-group">
+                              <button
+                                type="button"
+                                className="btn-table-action activate"
+                                onClick={() => handleOpenActivateModal(o)}
+                                title={o.activation_link ? "Edit Activation Link" : "Publish Activation Link"}
+                              >
+                                <Key size={14} />
+                              </button>
+                              <select
+                                className="status-select-sm"
+                                value={o.status || 'Verified'}
+                                onChange={(e) => handleUpdateOrderStatus(o.id, e.target.value)}
+                              >
+                                <option value="Activated">Activated</option>
+                                <option value="Verified">Verified</option>
+                                <option value="Pending Activation">Pending Activation</option>
+                                <option value="Pending PayWay Checkout">Pending PayWay</option>
+                                <option value="Refunded">Refunded</option>
+                              </select>
+                            </div>
                           </td>
                         </tr>
                       ))}
@@ -1440,6 +1597,112 @@ export default function AdminPanel({ onCloseAdmin, onLogout }) {
                   <button type="submit" className="btn btn-primary btn-glow">
                     <Save size={16} />
                     <span>{editingCategory ? 'Update Category' : 'Save Category'}</span>
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Modal: Publish Customer Activation Link */}
+        {isActivateModalOpen && activatingOrder && (
+          <div className="modal-backdrop">
+            <div className="modal-container admin-action-modal">
+              <button 
+                className="modal-close" 
+                onClick={() => setIsActivateModalOpen(false)}
+                aria-label="Close Modal"
+              >
+                <X size={18} />
+              </button>
+
+              <div className="admin-modal-header">
+                <div className="admin-modal-icon-badge">
+                  <Zap size={22} className="text-warning" />
+                </div>
+                <div>
+                  <h3>Publish Customer Activation Link</h3>
+                  <p>
+                    Order <strong>#{activatingOrder.order_number || activatingOrder.id}</strong> • Customer: <strong>{activatingOrder.customer_name || activatingOrder.customerName}</strong>
+                  </p>
+                </div>
+              </div>
+
+              <form onSubmit={handleSubmitActivationLink} className="admin-modal-form">
+                {/* Customer & Order Summary Card */}
+                <div className="order-summary-micro-card">
+                  <div className="summary-micro-col">
+                    <span className="micro-label">Customer Email:</span>
+                    <strong>{activatingOrder.customer_email || activatingOrder.customerEmail}</strong>
+                  </div>
+                  <div className="summary-micro-col">
+                    <span className="micro-label">Paid Amount:</span>
+                    <strong className="text-success">${activatingOrder.amount} USD</strong>
+                  </div>
+                  <div className="summary-micro-col">
+                    <span className="micro-label">Payment Method:</span>
+                    <span className="badge-aba">{activatingOrder.payment_method || activatingOrder.paymentMethod}</span>
+                  </div>
+                </div>
+
+                {/* Quick URL Generator Presets */}
+                <div className="form-group">
+                  <label className="form-label">
+                    <span>Customer Activation URL:</span>
+                    <span className="text-muted text-xs"> (The link your customer will see and click)</span>
+                  </label>
+                  <div className="preset-buttons-row mb-2">
+                    <button
+                      type="button"
+                      className="btn-preset-chip"
+                      onClick={() => setActivationInput(`https://t.me/synapse_ai_bot?start=act_${activatingOrder.order_number || activatingOrder.id}`)}
+                    >
+                      🤖 Telegram Bot Link
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-preset-chip"
+                      onClick={() => setActivationInput(`https://app.synapse.ai/activate?token=act_${activatingOrder.order_number || activatingOrder.id}`)}
+                    >
+                      🌐 Web Portal Link
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-preset-chip"
+                      onClick={() => setActivationInput(activatingOrder.aba_link || settings.abaPayLink)}
+                    >
+                      💳 ABA PayWay Receipt
+                    </button>
+                  </div>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="e.g. https://t.me/my_bot?start=xxx or https://app.synapse.ai/activate/xxx"
+                    value={activationInput}
+                    onChange={(e) => setActivationInput(e.target.value)}
+                    required
+                    autoFocus
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Optional Message / Instructions for Customer:</label>
+                  <textarea
+                    className="form-textarea"
+                    rows={2}
+                    placeholder="e.g. Your premium account is now active! Click the link above to start generating."
+                    value={activationNoteInput}
+                    onChange={(e) => setActivationNoteInput(e.target.value)}
+                  />
+                </div>
+
+                <div className="admin-modal-actions">
+                  <button type="button" className="btn btn-secondary" onClick={() => setIsActivateModalOpen(false)}>
+                    Cancel
+                  </button>
+                  <button type="submit" className="btn btn-primary btn-glow" disabled={activatingLoading}>
+                    <Send size={15} />
+                    <span>{activatingLoading ? 'Publishing...' : 'Publish Activation Link to User'}</span>
                   </button>
                 </div>
               </form>

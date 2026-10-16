@@ -20,10 +20,14 @@ class Order extends Model
         'aba_link',
         'status',
         'api_key',
+        'activation_link',
+        'activation_note',
+        'activated_at',
     ];
 
     protected $casts = [
         'items' => 'array',
         'amount' => 'float',
+        'activated_at' => 'datetime',
     ];
 }

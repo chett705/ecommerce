@@ -4,7 +4,6 @@ import Navbar from './components/Navbar';
 import Hero from './components/Hero';
 import LivePlayground from './components/LivePlayground';
 import ToolsCatalog from './components/ToolsCatalog';
-import SubscriptionPlans from './components/SubscriptionPlans';
 import PlatformFeatures from './components/PlatformFeatures';
 import Testimonials from './components/Testimonials';
 import FaqSection from './components/FaqSection';
@@ -19,7 +18,11 @@ import LoginModal from './components/LoginModal';
 import { Sparkles, ArrowRight, ShieldCheck, Zap } from 'lucide-react';
 
 function MainContent() {
-  const { addToast } = useApp();
+  const { addToast, setIsCheckoutOpen } = useApp();
+
+  useEffect(() => {
+    window.__openCheckout = (open = true) => setIsCheckoutOpen(open);
+  }, [setIsCheckoutOpen]);
 
   // Authentication & Role State
   const [currentUser, setCurrentUser] = useState(() => {
@@ -166,9 +169,6 @@ function MainContent() {
         {/* AI Tools Catalog / Marketplace */}
         <ToolsCatalog searchRef={searchInputRef} />
 
-        {/* Unified Subscriptions & Pricing */}
-        <SubscriptionPlans />
-
         {/* Platform & Infrastructure Highlights */}
         <PlatformFeatures />
 
@@ -192,12 +192,12 @@ function MainContent() {
                   Join 185,000+ engineers, designers, and founders who replaced 10 separate AI subscriptions with Synapse.AI.
                 </p>
                 <div className="cta-action-row">
-                  <a href="#pricing" className="btn btn-primary btn-xl btn-glow">
+                  <a href="#tools" className="btn btn-primary btn-xl btn-glow">
                     <Sparkles size={18} />
-                    <span>Get Subscribed (Save 20%)</span>
-                  </a>
-                  <a href="#tools" className="btn btn-secondary btn-xl">
                     <span>Browse Marketplace</span>
+                  </a>
+                  <a href="#playground" className="btn btn-secondary btn-xl">
+                    <span>Try Live AI Sandbox</span>
                     <ArrowRight size={18} />
                   </a>
                 </div>

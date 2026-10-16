@@ -1,16 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
-import { 
-  X, 
-  CreditCard, 
-  CheckCircle2, 
-  Copy, 
-  Check, 
-  Download, 
-  ArrowRight, 
-  ArrowLeft, 
-  ShieldCheck, 
-  Lock, 
+import {
+  X,
+  CreditCard,
+  CheckCircle2,
+  Copy,
+  Check,
+  Download,
+  ArrowRight,
+  ArrowLeft,
+  ShieldCheck,
+  Lock,
   Sparkles,
   QrCode,
   ExternalLink,
@@ -18,20 +18,20 @@ import {
   SmartphoneNfc,
   RefreshCw,
   Zap,
-  Info
+  Info,
+  Clock
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
-const DEFAULT_ABA_PAY_LINK = 'https://link.payway.com.kh/ABAPAY9s540501U';
 
 export default function CheckoutModal() {
-  const { 
-    isCheckoutOpen, 
-    setIsCheckoutOpen, 
-    cart, 
+  const {
+    isCheckoutOpen,
+    setIsCheckoutOpen,
+    cart,
     clearCart,
-    totalUSD, 
-    formatPrice, 
+    totalUSD,
+    formatPrice,
     setIsAccountOpen,
     generateNewApiKey,
     addToast
@@ -42,21 +42,22 @@ export default function CheckoutModal() {
   const [customerEmail, setCustomerEmail] = useState('alex@venturelabs.ai');
   const [customerCompany, setCustomerCompany] = useState('VentureLabs Inc.');
 
-  // Default to KHQR Direct Gateway
-  const [paymentMethod, setPaymentMethod] = useState('khqr'); // 'khqr' | 'aba' | 'card' | 'crypto'
-  const [paywayUrl, setPaywayUrl] = useState(DEFAULT_ABA_PAY_LINK);
-  
-  // KHQR State
+  // Payment Method: 'khqr' (Cambodia National KHQR Gateway) | 'card' | 'crypto'
+  const [paymentMethod, setPaymentMethod] = useState('khqr');
+
+  // Activation Link State (Published by Admin)
+  const [currentOrder, setCurrentOrder] = useState(null);
+  const [activationLink, setActivationLink] = useState('');
+  const [activationNote, setActivationNote] = useState('');
+  const [activationLinkCopied, setActivationLinkCopied] = useState(false);
+
+  // KHQR Direct Gateway Dynamic Payment State
   const [khqrPayment, setKhqrPayment] = useState(null);
   const [khqrLoading, setKhqrLoading] = useState(false);
-  const [iframeLoading, setIframeLoading] = useState(true);
+  const [khqrIframeLoading, setKhqrIframeLoading] = useState(true);
   const [khqrError, setKhqrError] = useState(null);
   const [hasOpenedKhqr, setHasOpenedKhqr] = useState(false);
   const [txCopied, setTxCopied] = useState(false);
-
-  // ABA PayWay Fallback State
-  const [hasOpenedPayway, setHasOpenedPayway] = useState(false);
-  const [abaLinkCopied, setAbaLinkCopied] = useState(false);
 
   // Credit card state
   const [cardNumber, setCardNumber] = useState('4532 8920 1823 8892');
@@ -67,24 +68,14 @@ export default function CheckoutModal() {
   const [keyCopied, setKeyCopied] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // Sync PayWay URL from backend settings
-  useEffect(() => {
-    fetch('/api/settings')
-      .then((res) => res.json())
-      .then((data) => {
-        const link = data?.settings?.abaPayLink || data?.abaPayLink;
-        if (link) {
-          setPaywayUrl(link);
-        }
-      })
-      .catch((err) => console.warn('Could not load backend settings:', err));
-  }, []);
 
-  // Generate dynamic KHQR when entering Step 2 or when amount changes
+  // Generate dynamic signed payment for KHQR
   const generateKhqrPayment = async () => {
     if (totalUSD <= 0) return;
     setKhqrLoading(true);
     setKhqrError(null);
+    setKhqrIframeLoading(true);
+
     try {
       const res = await fetch('/api/payment/khqr/generate', {
         method: 'POST',
@@ -100,6 +91,9 @@ export default function CheckoutModal() {
       const data = await res.json();
       if (data.success && data.checkout_url) {
         setKhqrPayment(data);
+        if (data.order) {
+          setCurrentOrder(data.order);
+        }
       } else {
         setKhqrError(data.message || 'Failed to generate KHQR link');
       }
@@ -117,6 +111,36 @@ export default function CheckoutModal() {
     }
   }, [step, paymentMethod, totalUSD]);
 
+  // Real-time polling for admin's published activation link while in Step 3
+  useEffect(() => {
+    if (step !== 3 || !currentOrder?.id || activationLink) return;
+
+    const pollTimer = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/orders/${currentOrder.id}`);
+        const data = await res.json();
+        if (data.success && data.order?.activation_link) {
+          setActivationLink(data.order.activation_link);
+          if (data.order.activation_note) {
+            setActivationNote(data.order.activation_note);
+          }
+          addToast('🎉 Admin has published your Activation Link!', 'success');
+          try {
+            confetti({
+              particleCount: 160,
+              spread: 100,
+              origin: { y: 0.5 }
+            });
+          } catch (_) {}
+        }
+      } catch (err) {
+        console.warn('Activation link poll check:', err);
+      }
+    }, 3000);
+
+    return () => clearInterval(pollTimer);
+  }, [step, currentOrder?.id, activationLink]);
+
   if (!isCheckoutOpen) return null;
 
   const handleNextToPayment = (e) => {
@@ -133,7 +157,7 @@ export default function CheckoutModal() {
     if (!khqrPayment?.checkout_url) return;
 
     setHasOpenedKhqr(true);
-    addToast('🚀 Opening KHQR payment gateway...', 'info');
+    addToast('🚀 Opening Cambodia National KHQR gateway...', 'info');
 
     if (redirect) {
       window.location.href = khqrPayment.checkout_url;
@@ -145,69 +169,66 @@ export default function CheckoutModal() {
     }
   };
 
-  const handleOpenPayWay = (e, redirect = false) => {
-    if (e && e.preventDefault) e.preventDefault();
 
-    // Register pending order to backend
-    try {
-      fetch('/api/orders', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          customerName,
-          customerEmail,
-          company: customerCompany,
-          items: cart.map((c) => c.name),
-          amount: totalUSD,
-          paymentMethod: 'ABA PAY / PayWay',
-          abaLink: paywayUrl,
-          status: 'Pending PayWay Checkout'
-        })
-      });
-    } catch (err) {
-      console.warn('Order sync note:', err);
-    }
-
-    setHasOpenedPayway(true);
-    addToast('🚀 Opening ABA PayWay gateway...', 'info');
-
-    if (redirect) {
-      window.location.href = paywayUrl;
-    } else {
-      const win = window.open(paywayUrl, '_blank', 'noopener,noreferrer');
-      if (!win || win.closed || typeof win.closed === 'undefined') {
-        window.location.href = paywayUrl;
-      }
-    }
-  };
-
-  const handleCopyTxId = () => {
-    if (!khqrPayment?.transaction_id) return;
-    navigator.clipboard.writeText(khqrPayment.transaction_id);
+  const handleCopyTxId = (id) => {
+    if (!id) return;
+    navigator.clipboard.writeText(id);
     setTxCopied(true);
     setTimeout(() => setTxCopied(false), 2000);
     addToast('Transaction ID copied!', 'info');
   };
 
-  const handleCopyAbaLink = () => {
-    navigator.clipboard.writeText(paywayUrl);
-    setAbaLinkCopied(true);
-    setTimeout(() => setAbaLinkCopied(false), 2000);
-    addToast('ABA PAY link copied to clipboard!', 'info');
-  };
 
   const handleCompleteOrder = async () => {
     setIsProcessing(true);
     const fallbackKey = generateNewApiKey(`Production - ${customerCompany || customerName}`);
     let finalKey = fallbackKey.key;
 
+    const activeTxId = paymentMethod === 'khqr' ? khqrPayment?.transaction_id : null;
+    const orderNum = activeTxId || `SYN-ORD-${Math.floor(1000 + Math.random() * 9000)}`;
+    const activePaymentTitle = paymentMethod === 'khqr'
+      ? 'KHQR Direct Gateway'
+      : paymentMethod === 'card'
+        ? 'Credit Card'
+        : 'Crypto';
+
+    const localOrder = {
+      id: orderNum,
+      order_number: orderNum,
+      customer_name: customerName,
+      customerName: customerName,
+      customer_email: customerEmail,
+      customerEmail: customerEmail,
+      company: customerCompany,
+      items: cart.map((c) => c.name),
+      amount: totalUSD,
+      payment_method: activePaymentTitle,
+      paymentMethod: activePaymentTitle,
+      merchant_name: 'BUNTHOEUN CHETRA',
+      status: 'Verified',
+      api_key: finalKey,
+      date: new Date().toISOString().replace('T', ' ').slice(0, 16)
+    };
+
     // Send order to backend API
     try {
-      if (paymentMethod === 'khqr' && khqrPayment?.transaction_id) {
-        const res = await fetch(`/api/payment/khqr/verify/${khqrPayment.transaction_id}?confirm=true`);
-        const data = await res.json();
-        if (data.success && data.api_key) {
-          finalKey = data.api_key;
+      if (activeTxId) {
+        const res = await fetch(`/api/payment/khqr/verify/${activeTxId}?confirm=true`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success && data.api_key) {
+            finalKey = data.api_key;
+          }
+          if (data.order) {
+            setCurrentOrder({ ...localOrder, ...data.order });
+            if (data.order.activation_link) {
+              setActivationLink(data.order.activation_link);
+            }
+          } else {
+            setCurrentOrder(localOrder);
+          }
+        } else {
+          setCurrentOrder(localOrder);
         }
       } else {
         const res = await fetch('/api/orders', {
@@ -219,15 +240,28 @@ export default function CheckoutModal() {
             company: customerCompany,
             items: cart.map((c) => c.name),
             amount: totalUSD,
-            paymentMethod: paymentMethod === 'aba' ? 'ABA PAY / PayWay' : (paymentMethod === 'card' ? 'Credit Card' : 'Crypto'),
-            abaLink: paywayUrl
+            paymentMethod: activePaymentTitle,
+            status: 'Verified'
           })
         });
-        const data = await res.json();
-        if (data.apiKey) finalKey = data.apiKey;
+        if (res.ok) {
+          const data = await res.json();
+          if (data.apiKey) finalKey = data.apiKey;
+          if (data.order) {
+            setCurrentOrder({ ...localOrder, ...data.order });
+            if (data.order.activation_link) {
+              setActivationLink(data.order.activation_link);
+            }
+          } else {
+            setCurrentOrder(localOrder);
+          }
+        } else {
+          setCurrentOrder(localOrder);
+        }
       }
     } catch (err) {
       console.warn('Backend order sync warning:', err);
+      setCurrentOrder(localOrder);
     }
 
     setIssuedApiKey(finalKey);
@@ -259,16 +293,16 @@ export default function CheckoutModal() {
   };
 
   const handleDownloadReceipt = () => {
+    const activeTxId = paymentMethod === 'khqr' ? khqrPayment?.transaction_id : `SYN-${Date.now().toString(36).toUpperCase()}`;
+    const activeHash = paymentMethod === 'khqr' ? (khqrPayment?.hash || 'SHA-1 VERIFIED') : 'VERIFIED';
     const paymentMethodDisplay = paymentMethod === 'khqr'
       ? `KHQR DIRECT GATEWAY (TX: ${khqrPayment?.transaction_id || 'N/A'})`
-      : paymentMethod === 'aba' 
-      ? `ABA PAY / PAYWAY (${paywayUrl})` 
       : paymentMethod.toUpperCase();
 
     const receiptContent = `=====================================================
 SYNAPSE.AI — OFFICIAL LICENSE & TAX INVOICE
 =====================================================
-Order ID: ${khqrPayment?.transaction_id || `SYN-${Date.now().toString(36).toUpperCase()}`}
+Order ID: ${activeTxId}
 Date: ${new Date().toLocaleDateString()}
 Customer: ${customerName} (${customerEmail})
 Organization: ${customerCompany || 'Individual'}
@@ -278,7 +312,7 @@ ${cart.map((c) => `- ${c.name} (${formatPrice(c.price)})`).join('\n')}
 
 TOTAL PAID: ${formatPrice(totalUSD)}
 PAYMENT METHOD: ${paymentMethodDisplay} (VERIFIED)
-GATEWAY SIGNATURE: ${khqrPayment?.hash || 'SHA-1 VERIFIED'}
+GATEWAY SIGNATURE: ${activeHash}
 
 CREDENTIALS ISSUED:
 Production API Key: ${issuedApiKey}
@@ -418,44 +452,39 @@ Thank you for building with SYNAPSE.AI!
         {step === 2 && (
           <div className="checkout-step-panel">
             <h3 className="step-title">Select Secure Payment Method</h3>
-            <p className="step-sub">Pay instantly via KHQR (ABA Mobile & All Cambodian Banks), PayWay link, Card, or Crypto.</p>
+            <p className="step-sub">Pay instantly via KHQR (ABA Mobile & All Cambodian Banks), Card, or Crypto.</p>
 
             {/* Payment Method Selector */}
             <div className="payment-methods-tabs">
-              {/* KHQR Gateway Tab - Featured */}
+              {/* Tab 1: KHQR Gateway */}
               <button
                 type="button"
                 className={`payment-tab payment-tab-khqr ${paymentMethod === 'khqr' ? 'active' : ''}`}
                 onClick={() => setPaymentMethod('khqr')}
+                id="tab-payment-khqr"
               >
                 <div className="khqr-mini-badge">KHQR</div>
                 <span className="payment-tab-title">KHQR Gateway</span>
-                <span className="badge-khqr-hot">INSTANT</span>
+                <span className="badge-khqr-hot">Bakong / All Banks</span>
               </button>
 
-              {/* ABA PayWay Tab */}
-              <button
-                type="button"
-                className={`payment-tab ${paymentMethod === 'aba' ? 'active' : ''}`}
-                onClick={() => setPaymentMethod('aba')}
-              >
-                <SmartphoneNfc size={18} className="aba-icon" />
-                <span>ABA PayWay</span>
-              </button>
-
+              {/* Tab 3: Credit Card */}
               <button
                 type="button"
                 className={`payment-tab ${paymentMethod === 'card' ? 'active' : ''}`}
                 onClick={() => setPaymentMethod('card')}
+                id="tab-payment-card"
               >
                 <CreditCard size={18} />
                 <span>Credit Card</span>
               </button>
 
+              {/* Tab 4: Crypto */}
               <button
                 type="button"
                 className={`payment-tab ${paymentMethod === 'crypto' ? 'active' : ''}`}
                 onClick={() => setPaymentMethod('crypto')}
+                id="tab-payment-crypto"
               >
                 <QrCode size={18} />
                 <span>Crypto</span>
@@ -495,8 +524,8 @@ Thank you for building with SYNAPSE.AI!
                   ) : khqrError ? (
                     <div className="khqr-error-box">
                       <p className="text-danger">{khqrError}</p>
-                      <button 
-                        type="button" 
+                      <button
+                        type="button"
                         className="btn btn-secondary btn-sm mt-2"
                         onClick={generateKhqrPayment}
                       >
@@ -508,7 +537,7 @@ Thank you for building with SYNAPSE.AI!
                       {/* Left: Official Live KHQR Gateway Embed */}
                       <div className="khqr-embed-col">
                         <div className="khqr-iframe-card">
-                          {iframeLoading && (
+                          {khqrIframeLoading && (
                             <div className="khqr-iframe-loading-overlay">
                               <RefreshCw size={26} className="spin-icon text-cyan" />
                               <span>Loading official KHQR QR code...</span>
@@ -519,7 +548,7 @@ Thank you for building with SYNAPSE.AI!
                             src={khqrPayment.iframe_url || `${khqrPayment.checkout_url}&iframe=1`}
                             title="Official KHQR Payment Gateway"
                             className="khqr-live-iframe"
-                            onLoad={() => setIframeLoading(false)}
+                            onLoad={() => setKhqrIframeLoading(false)}
                             allow="payment"
                           />
                         </div>
@@ -533,7 +562,7 @@ Thank you for building with SYNAPSE.AI!
                       <div className="khqr-info-col">
                         <div className="khqr-instructions-box">
                           <p className="khqr-lead-text">
-                            Scan the official dynamic KHQR code on the left with <strong>ABA Mobile</strong>, <strong>Bakong</strong>, or any Cambodian mobile banking app:
+                            Scan the official dynamic KHQR code with <strong>ABA Mobile</strong>, <strong>Bakong</strong>, or any Cambodian mobile banking app:
                           </p>
 
                           <div className="khqr-action-buttons-stack">
@@ -541,12 +570,13 @@ Thank you for building with SYNAPSE.AI!
                               href={khqrPayment.checkout_url}
                               target="_blank"
                               rel="noopener noreferrer"
+                              className="btn btn-khqr-primary btn-glow"
                               onClick={(e) => handleOpenKhqr(e)}
-                              className="btn btn-khqr-direct btn-glow"
-                              id="btn-open-khqr-gateway"
+                              id="btn-pay-now-khqr"
                             >
-                              <ExternalLink size={17} />
-                              <span>Open KHQR Fullscreen Page</span>
+                              <Zap size={18} />
+                              <span>Open Fullscreen KHQR Gateway</span>
+                              <ExternalLink size={16} />
                             </a>
 
                             <button
@@ -573,7 +603,7 @@ Thank you for building with SYNAPSE.AI!
                         <div className="khqr-crypto-specs">
                           <div className="khqr-spec-row">
                             <span className="spec-label">Merchant Name:</span>
-                            <strong className="text-cyan">dyzz (Verified)</strong>
+                            <strong className="text-cyan">{khqrPayment.merchant_name || 'dyzz'} (Verified)</strong>
                           </div>
 
                           <div className="khqr-spec-row">
@@ -583,33 +613,36 @@ Thank you for building with SYNAPSE.AI!
                               <button
                                 type="button"
                                 className="btn-copy-spec"
-                                onClick={handleCopyTxId}
+                                onClick={() => handleCopyTxId(khqrPayment.transaction_id)}
                                 title="Copy Transaction ID"
                               >
-                                {txCopied ? <Check size={12} className="text-success" /> : <Copy size={12} />}
+                                {txCopied ? <Check size={13} className="text-success" /> : <Copy size={13} />}
                               </button>
                             </div>
                           </div>
 
                           <div className="khqr-spec-row">
-                            <span className="spec-label">Security Hash:</span>
-                            <code className="spec-hash" title={khqrPayment.hash}>
-                              {khqrPayment.hash?.substring(0, 18)}...
-                            </code>
-                            <span className="khqr-verified-tag">
-                              <ShieldCheck size={11} className="inline mr-0.5" /> VERIFIED
-                            </span>
+                            <span className="spec-label">Security Hash (SHA-1):</span>
+                            <div className="spec-val-wrap">
+                              <code className="spec-code hash-code">{khqrPayment.hash}</code>
+                              <button
+                                type="button"
+                                className="btn-copy-spec"
+                                onClick={() => {
+                                  navigator.clipboard.writeText(khqrPayment.hash);
+                                  addToast('Security Hash copied!', 'info');
+                                }}
+                                title="Copy Hash"
+                              >
+                                <Copy size={13} />
+                              </button>
+                            </div>
                           </div>
 
                           <div className="khqr-spec-row">
                             <span className="spec-label">Profile ID:</span>
-                            <span className="spec-profile">{khqrPayment.profile_id}</span>
+                            <code className="spec-code">{khqrPayment.profile_id}</code>
                           </div>
-                        </div>
-
-                        <div className="khqr-guarantee-note">
-                          <ShieldCheck size={14} className="text-success mr-1 shrink-0" />
-                          <span>Direct instant settlement to merchant bank account</span>
                         </div>
                       </div>
                     </div>
@@ -618,11 +651,11 @@ Thank you for building with SYNAPSE.AI!
 
                 {hasOpenedKhqr && (
                   <div className="khqr-opened-banner">
-                    <CheckCircle2 size={18} className="text-success shrink-0" />
+                    <CheckCircle2 size={18} className="text-cyan shrink-0" />
                     <div>
                       <strong>KHQR Gateway opened in a new tab!</strong>
                       <p>
-                        Complete your payment of <strong>{formatPrice(totalUSD)}</strong> on your banking app. Once paid, click <strong>"I've Paid — Activate License"</strong> below.
+                        Complete your payment on the gateway. Once finished, click <strong>"I've Paid — Activate License"</strong> below.
                       </p>
                     </div>
                   </div>
@@ -630,121 +663,6 @@ Thank you for building with SYNAPSE.AI!
               </div>
             )}
 
-            {/* View 2: ABA PAY / PayWay Details */}
-            {paymentMethod === 'aba' && (
-              <div className="payment-details-view active">
-                <div className="aba-pay-card">
-                  <div className="aba-card-header">
-                    <div className="aba-branding">
-                      <div className="aba-logo-badge">ABA'</div>
-                      <div>
-                        <h4 className="aba-title">ABA PAY & PayWay Checkout</h4>
-                        <span className="aba-sub">PayWay Cambodia Direct Gateway</span>
-                      </div>
-                    </div>
-                    <span className="aba-amount-tag">{formatPrice(totalUSD)}</span>
-                  </div>
-
-                  <div className="aba-checkout-body">
-                    <div className="aba-qr-section">
-                      <a
-                        href={paywayUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={(e) => handleOpenPayWay(e)}
-                        className="aba-qr-link-wrapper"
-                        title="Click to open PayWay in browser or scan with phone"
-                      >
-                        <div className="aba-qr-frame">
-                          <img 
-                            src={`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(paywayUrl)}`} 
-                            alt="ABA PAY PayWay QR Code" 
-                            className="aba-qr-img" 
-                          />
-                          <div className="aba-qr-pulse"></div>
-                          <div className="aba-qr-overlay">
-                            <ExternalLink size={24} />
-                            <span>Click to Pay</span>
-                          </div>
-                        </div>
-                      </a>
-                      <span className="aba-scan-hint">
-                        <Smartphone size={13} className="inline mr-1" />
-                        Scan with ABA Mobile or click QR to open PayWay
-                      </span>
-                    </div>
-
-                    <div className="aba-action-section">
-                      <p className="aba-instructions">
-                        Click below to open PayWay and complete your payment via <strong>ABA Mobile</strong>:
-                      </p>
-
-                      <a
-                        href={paywayUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={(e) => handleOpenPayWay(e)}
-                        className="btn btn-aba-direct"
-                        id="btn-open-payway-modal"
-                      >
-                        <SmartphoneNfc size={18} />
-                        <span>Open ABA PAY Link</span>
-                        <ExternalLink size={16} />
-                      </a>
-
-                      <button
-                        type="button"
-                        className="aba-redirect-link"
-                        onClick={() => handleOpenPayWay(null, true)}
-                      >
-                        Direct redirect to PayWay in this tab →
-                      </button>
-
-                      <div className="aba-link-box">
-                        <span className="aba-link-label">Direct PayWay URL:</span>
-                        <div className="aba-link-row">
-                          <a
-                            href={paywayUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            onClick={(e) => handleOpenPayWay(e)}
-                            className="aba-link-code aba-link-clickable"
-                          >
-                            <span>{paywayUrl}</span>
-                            <ExternalLink size={12} className="inline ml-1" />
-                          </a>
-                          <button
-                            type="button"
-                            className="btn-copy-aba-link"
-                            onClick={handleCopyAbaLink}
-                            title="Copy ABA Link"
-                          >
-                            {abaLinkCopied ? <Check size={14} className="text-success" /> : <Copy size={14} />}
-                          </button>
-                        </div>
-                      </div>
-
-                      <div className="aba-security-notice">
-                        <ShieldCheck size={14} className="text-success mr-1" />
-                        <span>Instant automated settlement verified by PayWay</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {hasOpenedPayway && (
-                  <div className="aba-opened-banner">
-                    <CheckCircle2 size={18} className="text-success shrink-0" />
-                    <div>
-                      <strong>PayWay Gateway opened in a new tab!</strong>
-                      <p>
-                        Complete your payment on PayWay. Once finished, click <strong>"I've Paid — Activate License"</strong> below.
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
 
             {/* View 3: Credit Card */}
             {paymentMethod === 'card' && (
@@ -799,7 +717,7 @@ Thank you for building with SYNAPSE.AI!
             )}
 
             {/* Step 2 Actions */}
-            {(paymentMethod === 'khqr' || paymentMethod === 'aba') ? (
+            {paymentMethod === 'khqr' ? (
               <div className="checkout-actions-aba-wrap">
                 <button
                   type="button"
@@ -810,51 +728,41 @@ Thank you for building with SYNAPSE.AI!
                 </button>
 
                 <div className="aba-dual-actions">
-                  {/* Primary Button: Directly Open Gateway */}
-                  {paymentMethod === 'khqr' ? (
-                    <a
-                      href={khqrPayment?.checkout_url || '#'}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="btn btn-khqr-primary btn-glow"
-                      onClick={(e) => handleOpenKhqr(e)}
-                      id="btn-pay-now-khqr"
-                    >
-                      <Zap size={18} />
-                      <span>Pay via KHQR ({formatPrice(totalUSD)})</span>
-                      <ExternalLink size={16} />
-                    </a>
-                  ) : (
-                    <a
-                      href={paywayUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="btn btn-aba-pay-primary btn-glow"
-                      onClick={(e) => handleOpenPayWay(e)}
-                      id="btn-pay-now-payway"
-                    >
-                      <SmartphoneNfc size={18} />
-                      <span>Pay Now via ABA PAY ({formatPrice(totalUSD)})</span>
-                      <ExternalLink size={16} />
-                    </a>
-                  )}
+                  <a
+                    href={khqrPayment?.checkout_url || '#'}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn btn-khqr-primary btn-glow"
+                    onClick={(e) => handleOpenKhqr(e)}
+                    id="btn-pay-now-khqr"
+                  >
+                    <Zap size={18} />
+                    <span>Pay via KHQR ({formatPrice(totalUSD)})</span>
+                    <ExternalLink size={16} />
+                  </a>
 
-                  {/* Secondary Button: Activate license once paid */}
                   <button
                     type="button"
-                    className={`btn ${(hasOpenedKhqr || hasOpenedPayway) ? 'btn-success btn-glow' : 'btn-outline-glow'}`}
+                    className={`btn ${hasOpenedKhqr ? 'btn-success btn-glow' : 'btn-outline-glow'}`}
                     onClick={handleCompleteOrder}
                     disabled={isProcessing}
                     id="btn-confirm-payment"
                   >
-                    <CheckCircle2 size={16} />
-                    <span>
-                      {isProcessing
-                        ? 'Activating License...'
-                        : (hasOpenedKhqr || hasOpenedPayway)
-                        ? "I've Paid — Activate License"
-                        : "Already Paid? Activate License"}
-                    </span>
+                    {isProcessing ? (
+                      <>
+                        <RefreshCw size={16} className="spin-icon" />
+                        <span>Activating License...</span>
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle2 size={16} />
+                        <span>
+                          {hasOpenedKhqr
+                            ? "I've Paid — Activate License"
+                            : "Already Paid? Activate License"}
+                        </span>
+                      </>
+                    )}
                   </button>
                 </div>
               </div>
@@ -894,10 +802,80 @@ Thank you for building with SYNAPSE.AI!
                 <CheckCircle2 size={44} className="text-success" />
               </div>
 
-              <h3 className="success-title">Order Successful & License Activated!</h3>
+              <h3 className="success-title">Order Successful & Verified!</h3>
               <p className="success-sub">
-                Welcome to Synapse.AI! Your payment via <strong>{paymentMethod === 'khqr' ? 'KHQR Direct Gateway' : paymentMethod === 'aba' ? 'ABA PAY / PayWay' : paymentMethod.toUpperCase()}</strong> has been verified.
+                Welcome to Synapse.AI! Your payment via <strong>{paymentMethod === 'khqr' ? 'KHQR Direct Gateway' : paymentMethod.toUpperCase()}</strong> has been recorded.
               </p>
+
+              {/* Dedicated Customer Activation Link Box */}
+              {activationLink ? (
+                <div className="activation-link-ready-box">
+                  <div className="activation-ready-header">
+                    <span className="badge-activated-live">
+                      <Sparkles size={13} className="inline mr-1" /> ACTIVATION LINK READY
+                    </span>
+                    <span className="live-verified-dot"></span>
+                  </div>
+                  <h4 className="activation-ready-title">Your Dedicated Workspace Activation Link</h4>
+                  <p className="activation-ready-desc">
+                    {activationNote || 'Your membership is authorized. Click below to launch your platform workspace.'}
+                  </p>
+
+                  <div className="activation-url-display-row">
+                    <a
+                      href={activationLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="activation-direct-link"
+                      title="Open Activation Link"
+                    >
+                      <span>{activationLink}</span>
+                      <ExternalLink size={14} className="inline ml-1 shrink-0" />
+                    </a>
+                    <button
+                      type="button"
+                      className="btn-copy-activation-link"
+                      onClick={() => {
+                        navigator.clipboard.writeText(activationLink);
+                        setActivationLinkCopied(true);
+                        setTimeout(() => setActivationLinkCopied(false), 2000);
+                        addToast('Activation link copied to clipboard!', 'info');
+                      }}
+                      title="Copy Activation Link"
+                    >
+                      {activationLinkCopied ? <Check size={15} className="text-success" /> : <Copy size={15} />}
+                    </button>
+                  </div>
+
+                  <a
+                    href={activationLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn btn-primary btn-glow btn-full mt-3"
+                    id="btn-open-activation-link"
+                  >
+                    <Zap size={16} />
+                    <span>Launch & Activate Your Account Now →</span>
+                  </a>
+                </div>
+              ) : (
+                <div className="activation-link-pending-box">
+                  <div className="activation-pending-header">
+                    <span className="badge-pending-activation">
+                      <Clock size={13} className="inline mr-1 spin-subtle" /> AWAITING ADMIN ACTIVATION LINK
+                    </span>
+                    <span className="order-ref-pill">Order #{currentOrder?.order_number || 'SYN-ORD'}</span>
+                  </div>
+                  <h4 className="activation-pending-title">Payment Confirmed — Admin Alerted!</h4>
+                  <p className="activation-pending-desc">
+                    The store admin has received an alert for your order. Your custom activation link is being prepared and will appear right here automatically.
+                  </p>
+                  <div className="activation-radar-pulse">
+                    <span className="radar-circle"></span>
+                    <span className="radar-text">Listening for admin link in real time...</span>
+                  </div>
+                </div>
+              )}
 
               <div className="license-box">
                 <div className="license-header">

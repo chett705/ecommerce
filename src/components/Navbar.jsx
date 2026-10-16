@@ -47,10 +47,10 @@ export default function Navbar({ onOpenSearch, onOpenAdmin, currentUser, onOpenL
         <div className="container announcement-inner">
           <span className="badge-pill">✨ SPRING 2026 RELEASE</span>
           <p className="announcement-text">
-            <strong>Synapse Omni-LLM 4.5 & VideoGen 4D</strong> are now live! Get <strong>20% OFF</strong> all annual subscriptions with code <span className="promo-code-chip">NEURON20</span>
+            <strong>Synapse Omni-LLM 4.5 & VideoGen 4D</strong> are now live! Get <strong>20% OFF</strong> all tools & licenses with code <span className="promo-code-chip">NEURON20</span>
           </p>
-          <a href="#pricing" className="announcement-link">
-            Claim Offer <ArrowRight size={14} />
+          <a href="#tools" className="announcement-link">
+            Explore Tools <ArrowRight size={14} />
           </a>
         </div>
       </div>
@@ -76,11 +76,6 @@ export default function Navbar({ onOpenSearch, onOpenAdmin, currentUser, onOpenL
             <a href="#playground" className="nav-link">
               <Sparkles size={16} />
               <span>Live Sandbox</span>
-            </a>
-            <a href="#pricing" className="nav-link">
-              <Zap size={16} />
-              <span>Subscriptions</span>
-              <span className="nav-badge-save">SAVE 20%</span>
             </a>
             <a href="#features" className="nav-link">
               <span>Platform</span>
@@ -180,9 +175,9 @@ export default function Navbar({ onOpenSearch, onOpenAdmin, currentUser, onOpenL
               )}
             </button>
 
-            {/* Get Subscribed CTA */}
-            <a href="#pricing" className="btn btn-primary btn-glow nav-cta">
-              <span>Subscribe</span>
+            {/* Explore Tools CTA */}
+            <a href="#tools" className="btn btn-primary btn-glow nav-cta">
+              <span>Explore Tools</span>
               <ArrowRight size={15} />
             </a>
 
@@ -207,9 +202,6 @@ export default function Navbar({ onOpenSearch, onOpenAdmin, currentUser, onOpenL
               <a href="#playground" onClick={() => setMobileMenuOpen(false)} className="mobile-nav-link">
                 <Sparkles size={18} /> Live AI Sandbox
               </a>
-              <a href="#pricing" onClick={() => setMobileMenuOpen(false)} className="mobile-nav-link">
-                <Zap size={18} /> Subscriptions (Save 20%)
-              </a>
               <a href="#features" onClick={() => setMobileMenuOpen(false)} className="mobile-nav-link">
                 Platform Architecture
               </a>
@@ -220,21 +212,57 @@ export default function Navbar({ onOpenSearch, onOpenAdmin, currentUser, onOpenL
                 <HelpCircle size={18} /> FAQ
               </a>
               <div className="mobile-actions-stack">
-                <button 
-                  className="btn btn-secondary btn-full"
-                  onClick={() => {
-                    setMobileMenuOpen(false);
-                    setIsAccountOpen(true);
-                  }}
-                >
-                  <User size={16} /> Open Dashboard & API Keys
-                </button>
+                {currentUser?.role === 'admin' && (
+                  <button 
+                    className="btn btn-secondary btn-full text-cyan"
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      onOpenAdmin();
+                    }}
+                  >
+                    <ShieldCheck size={16} /> Open Admin Panel
+                  </button>
+                )}
+
+                {currentUser ? (
+                  <>
+                    <button 
+                      className="btn btn-secondary btn-full"
+                      onClick={() => {
+                        setMobileMenuOpen(false);
+                        setIsAccountOpen(true);
+                      }}
+                    >
+                      <User size={16} /> Dashboard & API Keys ({currentUser.name})
+                    </button>
+                    <button 
+                      className="btn btn-outline btn-full text-danger"
+                      onClick={() => {
+                        setMobileMenuOpen(false);
+                        onLogout();
+                      }}
+                    >
+                      <LogOut size={16} /> Sign Out
+                    </button>
+                  </>
+                ) : (
+                  <button 
+                    className="btn btn-secondary btn-full"
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      onOpenLogin();
+                    }}
+                  >
+                    <LogIn size={16} /> Sign In / Create Account
+                  </button>
+                )}
+
                 <a 
-                  href="#pricing" 
+                  href="#tools" 
                   className="btn btn-primary btn-glow btn-full"
                   onClick={() => setMobileMenuOpen(false)}
                 >
-                  <Sparkles size={16} /> Subscribe to Pro AI Suite
+                  <Boxes size={16} /> Explore AI Marketplace
                 </a>
               </div>
             </nav>

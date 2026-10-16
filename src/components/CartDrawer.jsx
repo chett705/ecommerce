@@ -1,23 +1,23 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { 
-  X, 
-  Trash2, 
-  ShoppingCart, 
-  ShieldCheck, 
-  Tag, 
-  ArrowRight, 
-  Check, 
+import {
+  X,
+  Trash2,
+  ShoppingCart,
+  ShieldCheck,
+  Tag,
+  ArrowRight,
+  Check,
   Sparkles,
   Zap
 } from 'lucide-react';
 
 export default function CartDrawer() {
-  const { 
-    cart, 
-    removeFromCart, 
+  const {
+    cart,
+    removeFromCart,
     clearCart,
-    isCartOpen, 
+    isCartOpen,
     setIsCartOpen,
     setIsCheckoutOpen,
     promoCode,
@@ -44,8 +44,8 @@ export default function CartDrawer() {
 
   return (
     <>
-      <div 
-        className="cart-drawer-overlay" 
+      <div
+        className="cart-drawer-overlay"
         onClick={() => setIsCartOpen(false)}
       />
 
@@ -57,8 +57,8 @@ export default function CartDrawer() {
             <h3>Your Cart</h3>
             <span className="cart-badge-count">{totalItemsCount}</span>
           </div>
-          <button 
-            className="cart-close-btn" 
+          <button
+            className="cart-close-btn"
             onClick={() => setIsCartOpen(false)}
             aria-label="Close Cart"
           >
@@ -95,7 +95,7 @@ export default function CartDrawer() {
               ))}
 
               <div className="cart-clear-row">
-                <button 
+                <button
                   className="btn-clear-cart"
                   onClick={clearCart}
                 >
@@ -109,7 +109,7 @@ export default function CartDrawer() {
                 <ShoppingCart size={40} />
               </div>
               <h4>Your cart is empty</h4>
-              <p>Explore our AI tool catalog or choose an all-access subscription plan to get started.</p>
+              <p>Explore our AI tool catalog to add tools and models to your order.</p>
               <button
                 className="btn btn-secondary btn-sm mt-3"
                 onClick={() => setIsCartOpen(false)}
@@ -190,7 +190,7 @@ export default function CartDrawer() {
             <div className="cart-trust-badges">
               <span><ShieldCheck size={13} /> 256-Bit Encrypted</span>
               <span><Sparkles size={13} /> Instant API Keys</span>
-              <span className="text-cyan"><span className="aba-mini-tag">ABA</span> PayWay & KHQR</span>
+              <span className="text-cyan"><span className="aba-mini-tag">KHQR</span> National Banking</span>
             </div>
           </div>
         )}

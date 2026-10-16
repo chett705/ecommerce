@@ -100,16 +100,16 @@ export default function Footer() {
           </ul>
         </div>
 
-        {/* Subscriptions */}
+        {/* Platform & Resources */}
         <div className="footer-col">
-          <h4 className="footer-heading">Subscriptions</h4>
+          <h4 className="footer-heading">Platform & Tools</h4>
           <ul className="footer-links">
-            <li><a href="#pricing">Starter Creator ($19/mo)</a></li>
-            <li><a href="#pricing">Pro AI Suite ($49/mo)</a></li>
-            <li><a href="#pricing">Enterprise Sovereign</a></li>
-            <li><a href="#pricing">Annual 20% Discount</a></li>
-            <li><a href="#faq">14-Day Money Back</a></li>
-            <li><a href="#faq">Zero Data Retention</a></li>
+            <li><a href="#tools">AI Models Marketplace</a></li>
+            <li><a href="#playground">Interactive Sandbox</a></li>
+            <li><a href="#features">Cluster Architecture</a></li>
+            <li><a href="#testimonials">Developer Stories</a></li>
+            <li><a href="#faq">License & Security FAQ</a></li>
+            <li><a href="#faq">Cambodia KHQR Gateway</a></li>
           </ul>
         </div>
 

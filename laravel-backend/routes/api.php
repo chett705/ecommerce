@@ -41,6 +41,8 @@ Route::delete('/tools/{id}', [ProductController::class, 'destroy']);
 // Orders Management
 Route::get('/orders', [OrderController::class, 'index']);
 Route::post('/orders', [OrderController::class, 'store']);
+Route::get('/orders/{id}', [OrderController::class, 'show']);
+Route::put('/orders/{id}/activate', [OrderController::class, 'activate']);
 Route::put('/orders/{id}/status', [OrderController::class, 'updateStatus']);
 
 // Subscribers Management

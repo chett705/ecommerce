@@ -1,5 +1,6 @@
 import React from 'react';
 import { 
+  Boxes,
   Crown, 
   FlaskConical, 
   ShieldCheck, 
@@ -29,17 +30,17 @@ export default function Hero() {
           </div>
 
           <h1 className="hero-title">
-            Supercharge Your Workflow With <span className="gradient-text">Elite AI Tools</span> & Unified Subscriptions
+            Supercharge Your Workflow With <span className="gradient-text">Elite AI Tools</span>
           </h1>
 
           <p className="hero-subtitle">
-            Access 45+ premier AI models, autonomous coding agents, neural voice synthesizers, and cinematic video generators. Unlock everything with one simple subscription or purchase perpetual tool licenses with instant production API keys.
+            Access 45+ premier AI models, autonomous coding agents, neural voice synthesizers, and cinematic video generators. Purchase perpetual tool licenses with instant production API keys and Cambodia National KHQR.
           </p>
 
           <div className="hero-cta-group">
-            <a href="#pricing" className="btn btn-primary btn-xl btn-glow">
-              <Crown size={20} />
-              <span>Unlock All-Access Subscription</span>
+            <a href="#tools" className="btn btn-primary btn-xl btn-glow">
+              <Boxes size={20} />
+              <span>Explore AI Marketplace</span>
             </a>
             <a href="#playground" className="btn btn-secondary btn-xl">
               <FlaskConical size={20} />
@@ -51,7 +52,7 @@ export default function Hero() {
           <div className="hero-stats-grid">
             <div className="stat-card">
               <div className="stat-number">185,000+</div>
-              <div className="stat-label">Active Subscribers</div>
+              <div className="stat-label">Active Developers</div>
             </div>
             <div className="stat-divider"></div>
             <div className="stat-card">

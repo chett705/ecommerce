@@ -12,14 +12,12 @@ export function AppProvider({ children }) {
   // Cart state
   const [cart, setCart] = useState([
     {
-      id: 'plan_pro',
-      name: 'Pro AI Suite (Annual Subscription)',
-      type: 'subscription',
-      billing: 'annual',
-      price: 588, // $49/mo * 12
-      unitPriceMonthly: 49,
+      id: 'omni_llm',
+      name: 'Synapse Omni-LLM 4.5 (Commercial License)',
+      type: 'tool',
+      price: 199,
       quantity: 1,
-      badge: 'All-Access Pass'
+      badge: 'Perpetual License'
     }
   ]);
 
@@ -42,10 +40,10 @@ export function AppProvider({ children }) {
 
   // User Account State
   const [userSubscription, setUserSubscription] = useState({
-    planName: 'Pro AI Suite (Annual)',
-    planId: 'plan_pro',
+    planName: 'Omni-LLM Developer Suite (Perpetual)',
+    planId: 'omni_llm',
     status: 'Active',
-    renewsOn: 'October 16, 2027',
+    renewsOn: 'Lifetime Access (No Expiry)',
     tokensUsed: 3840000,
     tokenLimit: 15000000,
     gpuCredits: 'Unlimited (Turbo Priority)'
