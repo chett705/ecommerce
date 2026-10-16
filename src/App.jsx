@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { AppProvider, useApp } from './context/AppContext';
 import Navbar from './components/Navbar';
 import Hero from './components/Hero';
@@ -14,10 +14,53 @@ import AccountDashboardModal from './components/AccountDashboardModal';
 import ToolQuickViewModal from './components/ToolQuickViewModal';
 import ToastContainer from './components/ToastContainer';
 import Footer from './components/Footer';
+import AdminPanel from './components/AdminPanel';
+import LoginModal from './components/LoginModal';
 import { Sparkles, ArrowRight, ShieldCheck, Zap } from 'lucide-react';
 
 function MainContent() {
+  const { addToast } = useApp();
+
+  // Authentication & Role State
+  const [currentUser, setCurrentUser] = useState(() => {
+    try {
+      const saved = localStorage.getItem('synapse_user');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  const [isLoginOpen, setIsLoginOpen] = useState(false);
+  const [isAdminOpen, setIsAdminOpen] = useState(false);
   const searchInputRef = useRef(null);
+
+  // Check URL pathname or hash for /login or #login or #admin
+  useEffect(() => {
+    const checkRoute = () => {
+      const path = window.location.pathname;
+      const hash = window.location.hash;
+
+      if (path === '/login' || hash === '#login') {
+        setIsLoginOpen(true);
+      } else if (path === '/admin' || hash === '#admin') {
+        if (currentUser?.role === 'admin') {
+          setIsAdminOpen(true);
+        } else {
+          setIsLoginOpen(true);
+          addToast('Please sign in as Administrator to access Admin Control Center', 'info');
+        }
+      }
+    };
+
+    checkRoute();
+    window.addEventListener('hashchange', checkRoute);
+    window.addEventListener('popstate', checkRoute);
+    return () => {
+      window.removeEventListener('hashchange', checkRoute);
+      window.removeEventListener('popstate', checkRoute);
+    };
+  }, [currentUser]);
 
   const handleOpenSearch = () => {
     const toolsSection = document.getElementById('tools');
@@ -27,6 +70,30 @@ function MainContent() {
     setTimeout(() => {
       searchInputRef.current?.focus();
     }, 400);
+  };
+
+  const handleLoginSuccess = (user, shouldOpenAdmin) => {
+    setCurrentUser(user);
+    if (user.role === 'admin' && shouldOpenAdmin) {
+      setIsAdminOpen(true);
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('synapse_user');
+    localStorage.removeItem('synapse_token');
+    setCurrentUser(null);
+    setIsAdminOpen(false);
+    addToast('Signed out successfully', 'info');
+  };
+
+  const handleOpenAdmin = () => {
+    if (currentUser?.role === 'admin') {
+      setIsAdminOpen(true);
+    } else {
+      setIsLoginOpen(true);
+      addToast('Administrator login required', 'info');
+    }
   };
 
   useEffect(() => {
@@ -40,6 +107,19 @@ function MainContent() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
+  // If Admin Panel is open AND user has role === 'admin', render dedicated control center
+  if (isAdminOpen && currentUser?.role === 'admin') {
+    return (
+      <div className="admin-root-container">
+        <AdminPanel 
+          onCloseAdmin={() => setIsAdminOpen(false)} 
+          onLogout={handleLogout}
+        />
+        <ToastContainer />
+      </div>
+    );
+  }
+
   return (
     <div className="app-layout">
       {/* Ambient background glows */}
@@ -48,7 +128,13 @@ function MainContent() {
       <div className="ambient-glow glow-3"></div>
 
       {/* Navigation */}
-      <Navbar onOpenSearch={handleOpenSearch} />
+      <Navbar 
+        onOpenSearch={handleOpenSearch} 
+        onOpenAdmin={handleOpenAdmin}
+        currentUser={currentUser}
+        onOpenLogin={() => setIsLoginOpen(true)}
+        onLogout={handleLogout}
+      />
 
       <main id="main-content">
         {/* Hero Section */}
@@ -129,6 +215,11 @@ function MainContent() {
       <CheckoutModal />
       <AccountDashboardModal />
       <ToolQuickViewModal />
+      <LoginModal 
+        isOpen={isLoginOpen} 
+        onClose={() => setIsLoginOpen(false)} 
+        onLoginSuccess={handleLoginSuccess}
+      />
       <ToastContainer />
     </div>
   );

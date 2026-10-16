@@ -12,10 +12,13 @@ import {
   Boxes,
   Zap,
   HelpCircle,
-  Star
+  Star,
+  ShieldCheck,
+  LogIn,
+  LogOut
 } from 'lucide-react';
 
-export default function Navbar({ onOpenSearch }) {
+export default function Navbar({ onOpenSearch, onOpenAdmin, currentUser, onOpenLogin, onLogout }) {
   const { 
     cart, 
     currency, 
@@ -121,15 +124,49 @@ export default function Navbar({ onOpenSearch }) {
               <kbd className="kbd-shortcut">Ctrl+K</kbd>
             </button>
 
-            {/* Dashboard / Account */}
-            <button 
-              className="btn-account"
-              onClick={() => setIsAccountOpen(true)}
-              title="Account Dashboard & API Keys"
-            >
-              <User size={16} />
-              <span className="account-btn-label">Dashboard</span>
-            </button>
+            {/* Auth / Account Controls */}
+            {currentUser ? (
+              <div className="auth-user-group">
+                {/* ONLY SHOW ADMIN BUTTON WHEN ROLE === 'ADMIN' */}
+                {currentUser.role === 'admin' && (
+                  <button 
+                    className="btn-admin-nav"
+                    onClick={onOpenAdmin}
+                    title="Control Center (Role: Admin)"
+                  >
+                    <ShieldCheck size={16} className="text-cyan" />
+                    <span>Admin Panel</span>
+                    <span className="badge-admin-dot"></span>
+                  </button>
+                )}
+
+                <button 
+                  className="btn-account"
+                  onClick={() => setIsAccountOpen(true)}
+                  title="Dashboard & API Keys"
+                >
+                  <User size={15} />
+                  <span className="account-btn-label">{currentUser.name || 'Account'}</span>
+                </button>
+
+                <button
+                  className="btn-logout-mini"
+                  onClick={onLogout}
+                  title="Sign Out"
+                >
+                  <LogOut size={14} />
+                </button>
+              </div>
+            ) : (
+              <button 
+                className="btn-signin-nav"
+                onClick={onOpenLogin}
+                title="Sign in / Login"
+              >
+                <LogIn size={15} />
+                <span>Sign In</span>
+              </button>
+            )}
 
             {/* Cart Button */}
             <button 

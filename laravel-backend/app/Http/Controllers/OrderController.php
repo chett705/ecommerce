@@ -1,0 +1,87 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Order;
+use App\Models\Subscriber;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Str;
+
+class OrderController extends Controller
+{
+    public function index(): JsonResponse
+    {
+        $orders = Order::latest()->get();
+
+        return response()->json([
+            'success' => true,
+            'orders' => $orders,
+        ]);
+    }
+
+    public function store(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'customerName' => 'nullable|string',
+            'customerEmail' => 'nullable|email',
+            'company' => 'nullable|string',
+            'items' => 'nullable',
+            'amount' => 'required|numeric',
+            'paymentMethod' => 'nullable|string',
+            'abaLink' => 'nullable|string',
+            'status' => 'nullable|string',
+        ]);
+
+        $apiKey = 'sk_synapse_live_' . Str::random(28);
+        $orderNum = 'SYN-ORD-' . rand(1000, 9999);
+
+        $order = Order::create([
+            'order_number' => $orderNum,
+            'customer_name' => $validated['customerName'] ?? 'Valued Customer',
+            'customer_email' => $validated['customerEmail'] ?? 'customer@synapse.ai',
+            'company' => $validated['company'] ?? '',
+            'items' => is_array($validated['items'] ?? null) ? $validated['items'] : [$validated['items'] ?? 'Pro AI Suite'],
+            'amount' => $validated['amount'],
+            'payment_method' => $validated['paymentMethod'] ?? 'ABA PAY / PayWay',
+            'aba_link' => $validated['abaLink'] ?? 'https://link.payway.com.kh/ABAPAY9s540501U',
+            'status' => $validated['status'] ?? 'Verified',
+            'api_key' => $apiKey,
+        ]);
+
+        // Auto create/update subscriber record
+        if (!empty($order->customer_email)) {
+            Subscriber::updateOrCreate(
+                ['email' => $order->customer_email],
+                [
+                    'name' => $order->customer_name,
+                    'plan' => 'Pro AI Suite (Annual)',
+                    'tier' => 'pro',
+                    'tokens_used' => 0,
+                    'token_limit' => 15000000,
+                    'status' => 'Active',
+                    'renews_on' => now()->addYear()->format('Y-m-d'),
+                    'payment_method' => $order->payment_method,
+                ]
+            );
+        }
+
+        return response()->json([
+            'success' => true,
+            'order' => $order,
+            'apiKey' => $apiKey,
+        ], 201);
+    }
+
+    public function updateStatus(Request $request, $id): JsonResponse
+    {
+        $order = Order::findOrFail($id);
+        $order->status = $request->input('status', 'Verified');
+        $order->save();
+
+        return response()->json([
+            'success' => true,
+            'order' => $order,
+        ]);
+    }
+}

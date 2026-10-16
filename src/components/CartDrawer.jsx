@@ -190,6 +190,7 @@ export default function CartDrawer() {
             <div className="cart-trust-badges">
               <span><ShieldCheck size={13} /> 256-Bit Encrypted</span>
               <span><Sparkles size={13} /> Instant API Keys</span>
+              <span className="text-cyan"><span className="aba-mini-tag">ABA</span> PayWay & KHQR</span>
             </div>
           </div>
         )}

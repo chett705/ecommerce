@@ -17,7 +17,7 @@ export const FAQS_DATA = [
   },
   {
     question: 'What payment methods do you accept?',
-    answer: 'We accept all major credit and debit cards (Visa, Mastercard, American Express), Apple Pay, Google Pay, PayPal, and Web3 cryptocurrencies (Bitcoin, Ethereum, USDT) via our encrypted global payment gateway.'
+    answer: 'We accept ABA PAY & PayWay KHQR mobile banking (instant QR scan & direct link), major credit and debit cards (Visa, Mastercard, American Express), Apple Pay, Google Pay, PayPal, and Web3 cryptocurrencies (Bitcoin, Ethereum, USDT) via our encrypted global payment gateway.'
   },
   {
     question: 'Is there a money-back guarantee?',

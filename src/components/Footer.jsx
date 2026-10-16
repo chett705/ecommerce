@@ -155,6 +155,7 @@ export default function Footer() {
             <a href="#">Terms of Service</a>
             <a href="#">Security & SOC2</a>
             <a href="#">Status Page</a>
+            <a href="#login" className="text-muted">Staff Login</a>
           </div>
         </div>
       </div>
