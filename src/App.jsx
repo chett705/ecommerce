@@ -1,0 +1,143 @@
+import React, { useRef, useEffect } from 'react';
+import { AppProvider, useApp } from './context/AppContext';
+import Navbar from './components/Navbar';
+import Hero from './components/Hero';
+import LivePlayground from './components/LivePlayground';
+import ToolsCatalog from './components/ToolsCatalog';
+import SubscriptionPlans from './components/SubscriptionPlans';
+import PlatformFeatures from './components/PlatformFeatures';
+import Testimonials from './components/Testimonials';
+import FaqSection from './components/FaqSection';
+import CartDrawer from './components/CartDrawer';
+import CheckoutModal from './components/CheckoutModal';
+import AccountDashboardModal from './components/AccountDashboardModal';
+import ToolQuickViewModal from './components/ToolQuickViewModal';
+import ToastContainer from './components/ToastContainer';
+import Footer from './components/Footer';
+import { Sparkles, ArrowRight, ShieldCheck, Zap } from 'lucide-react';
+
+function MainContent() {
+  const searchInputRef = useRef(null);
+
+  const handleOpenSearch = () => {
+    const toolsSection = document.getElementById('tools');
+    if (toolsSection) {
+      toolsSection.scrollIntoView({ behavior: 'smooth' });
+    }
+    setTimeout(() => {
+      searchInputRef.current?.focus();
+    }, 400);
+  };
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        handleOpenSearch();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  return (
+    <div className="app-layout">
+      {/* Ambient background glows */}
+      <div className="ambient-glow glow-1"></div>
+      <div className="ambient-glow glow-2"></div>
+      <div className="ambient-glow glow-3"></div>
+
+      {/* Navigation */}
+      <Navbar onOpenSearch={handleOpenSearch} />
+
+      <main id="main-content">
+        {/* Hero Section */}
+        <Hero />
+
+        {/* Marquee Trust Banner */}
+        <section className="trust-banner">
+          <div className="container">
+            <p className="trust-label">TRUSTED BY 185,000+ DEVELOPERS, CREATORS, AND INNOVATION LABS</p>
+            <div className="logo-marquee">
+              <div className="marquee-track">
+                <span className="partner-logo">⚡ CloudScale AI</span>
+                <span className="partner-logo">🌐 DevCorp Global</span>
+                <span className="partner-logo">🔷 NeuralFlow Labs</span>
+                <span className="partner-logo">🚀 HyperScale YC</span>
+                <span className="partner-logo">🎨 StudioNova Creative</span>
+                <span className="partner-logo">🛡️ ZeroDay Security</span>
+                <span className="partner-logo">⚡ CloudScale AI</span>
+                <span className="partner-logo">🌐 DevCorp Global</span>
+                <span className="partner-logo">🔷 NeuralFlow Labs</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Live Interactive Playground Sandbox */}
+        <LivePlayground />
+
+        {/* AI Tools Catalog / Marketplace */}
+        <ToolsCatalog searchRef={searchInputRef} />
+
+        {/* Unified Subscriptions & Pricing */}
+        <SubscriptionPlans />
+
+        {/* Platform & Infrastructure Highlights */}
+        <PlatformFeatures />
+
+        {/* Customer Testimonials & Reviews */}
+        <Testimonials />
+
+        {/* FAQ Section */}
+        <FaqSection />
+
+        {/* High-Impact CTA Banner */}
+        <section className="cta-banner-section">
+          <div className="container">
+            <div className="cta-card">
+              <div className="cta-card-glow"></div>
+              <div className="cta-content">
+                <span className="badge-pill">
+                  <Zap size={14} className="inline mr-1" /> READY TO BUILD?
+                </span>
+                <h2>Start Supercharging Your Workflow with 45+ AI Engines</h2>
+                <p>
+                  Join 185,000+ engineers, designers, and founders who replaced 10 separate AI subscriptions with Synapse.AI.
+                </p>
+                <div className="cta-action-row">
+                  <a href="#pricing" className="btn btn-primary btn-xl btn-glow">
+                    <Sparkles size={18} />
+                    <span>Get Subscribed (Save 20%)</span>
+                  </a>
+                  <a href="#tools" className="btn btn-secondary btn-xl">
+                    <span>Browse Marketplace</span>
+                    <ArrowRight size={18} />
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      {/* Footer */}
+      <Footer />
+
+      {/* Floating Modals & Drawers */}
+      <CartDrawer />
+      <CheckoutModal />
+      <AccountDashboardModal />
+      <ToolQuickViewModal />
+      <ToastContainer />
+    </div>
+  );
+}
+
+export default function App() {
+  return (
+    <AppProvider>
+      <MainContent />
+    </AppProvider>
+  );
+}
