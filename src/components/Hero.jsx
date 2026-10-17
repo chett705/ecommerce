@@ -1,167 +1,201 @@
 import React from 'react';
+import { useApp } from '../context/AppContext';
 import { 
-  Boxes,
-  Crown, 
-  FlaskConical, 
+  ShoppingBag,
+  ShoppingCart,
+  Sparkles, 
   ShieldCheck, 
   RotateCcw, 
-  CreditCard, 
+  QrCode, 
   FileCheck, 
   Star, 
-  Wand2, 
-  Code2, 
-  ShieldAlert, 
-  Cpu, 
-  Gauge, 
+  Tag, 
+  CheckCircle2, 
   Zap, 
-  Radio
+  Flame,
+  ArrowRight
 } from 'lucide-react';
 
 export default function Hero() {
+  const { tools, addToCart, setIsCartOpen, formatPrice } = useApp();
+
+  // Find a flagship tool for the featured storefront showcase card
+  const featuredProduct = (tools && tools.length > 0) 
+    ? tools[0] 
+    : {
+        id: 'omni-llm',
+        name: 'Synapse Omni-LLM 4.5',
+        category: 'llm',
+        badge: 'Flagship AI',
+        price: 199,
+        priceLifetime: 199
+      };
+
+  const handleQuickAddToCart = (e) => {
+    e.preventDefault();
+    addToCart({
+      id: featuredProduct.id || 'omni-llm',
+      name: featuredProduct.name || 'Synapse Omni-LLM 4.5',
+      price: featuredProduct.priceLifetime || featuredProduct.price || 199,
+      category: featuredProduct.category || 'llm'
+    });
+  };
+
   return (
     <section className="hero-section" id="hero">
       <div className="container hero-container">
-        {/* Left Column: Text & CTAs */}
+        {/* Left Column: Store Value Proposition & Direct Shopping CTAs */}
         <div className="hero-content">
-          <div className="hero-badge">
-            <span className="badge-icon"><Zap size={14} /></span>
-            <span className="badge-text">Next-Gen AI Marketplace & Unified Cloud</span>
-            <span className="badge-tag">v4.5 Live</span>
+          <div className="hero-badge store-badge-pulse">
+            <span className="badge-icon"><ShoppingBag size={14} className="text-cyan" /></span>
+            <span className="badge-text">Official AI Software Store & Perpetual License Marketplace</span>
+            <span className="badge-tag">FLASH SALE LIVE</span>
           </div>
 
           <h1 className="hero-title">
-            Supercharge Your Workflow With <span className="gradient-text">Elite AI Tools</span>
+            Buy Verified AI Tools. <span className="gradient-text">Pay Once, Own Forever.</span>
           </h1>
 
           <p className="hero-subtitle">
-            Access 45+ premier AI models, autonomous coding agents, neural voice synthesizers, and cinematic video generators. Purchase perpetual tool licenses with instant production API keys and Cambodia National KHQR.
+            The premier digital store for developers and creators. Purchase perpetual licenses for frontier AI models, autonomous coding agents, and generative design studios. Instant delivery via Cambodia National KHQR or Card — zero subscriptions, zero monthly fees.
           </p>
 
           <div className="hero-cta-group">
-            <a href="#tools" className="btn btn-primary btn-xl btn-glow">
-              <Boxes size={20} />
-              <span>Explore AI Marketplace</span>
+            <a href="#tools" className="btn btn-primary btn-xl btn-glow" id="hero-btn-shop">
+              <ShoppingBag size={20} />
+              <span>Shop All AI Tools & Deals</span>
             </a>
-            <a href="#playground" className="btn btn-secondary btn-xl">
-              <FlaskConical size={20} />
-              <span>Try Live AI Sandbox</span>
-            </a>
+            <button 
+              type="button" 
+              onClick={() => setIsCartOpen(true)} 
+              className="btn btn-secondary btn-xl"
+              id="hero-btn-cart"
+            >
+              <ShoppingCart size={20} />
+              <span>View Cart & Instant Checkout</span>
+            </button>
           </div>
 
-          {/* Real-Time Live Stats Grid */}
+          {/* Real-Time E-Commerce Store Stats Grid */}
           <div className="hero-stats-grid">
             <div className="stat-card">
-              <div className="stat-number">185,000+</div>
-              <div className="stat-label">Active Developers</div>
-            </div>
-            <div className="stat-divider"></div>
-            <div className="stat-card">
               <div className="stat-number">45+</div>
-              <div className="stat-label">Pro AI Engines</div>
+              <div className="stat-label">AI Tools In Stock</div>
             </div>
             <div className="stat-divider"></div>
             <div className="stat-card">
-              <div className="stat-number">99.99%</div>
-              <div className="stat-label">API SLA Uptime</div>
+              <div className="stat-number">$0</div>
+              <div className="stat-label">Monthly Subscriptions</div>
+            </div>
+            <div className="stat-divider"></div>
+            <div className="stat-card">
+              <div className="stat-number">18,500+</div>
+              <div className="stat-label">Licenses Delivered</div>
             </div>
             <div className="stat-divider"></div>
             <div className="stat-card">
               <div className="stat-number flex-items-center">
-                <Star size={16} className="text-warning fill-warning mr-1" /> 4.96/5
+                <Star size={16} className="text-warning fill-warning mr-1" /> 4.98/5
               </div>
-              <div className="stat-label">14,200+ Reviews</div>
+              <div className="stat-label">14,200+ Verified Buyers</div>
             </div>
           </div>
 
-          {/* Trust Guarantees */}
+          {/* Store Trust Guarantees */}
           <div className="hero-guarantees">
             <span className="guarantee-item">
-              <ShieldCheck size={16} /> Instant API Keys
+              <Zap size={16} /> Instant Digital Delivery
             </span>
             <span className="guarantee-item">
-              <RotateCcw size={16} /> 14-Day Money-Back
+              <QrCode size={16} /> Cambodia National KHQR Checkout
             </span>
             <span className="guarantee-item">
-              <CreditCard size={16} /> Cancel Anytime
+              <ShieldCheck size={16} /> 100% Genuine Lifetime License
             </span>
             <span className="guarantee-item">
-              <FileCheck size={16} /> 100% Commercial Rights
+              <RotateCcw size={16} /> 14-Day Money-Back Guarantee
+            </span>
+            <span className="guarantee-item">
+              <FileCheck size={16} /> Commercial Use Included
             </span>
           </div>
         </div>
 
-        {/* Right Column: Holographic Glass Visual Showcase */}
+        {/* Right Column: Featured Best-Selling Product Storefront Showcase */}
         <div className="hero-visual">
           <div className="visual-card-glass">
-            <div className="visual-card-header">
+            <div className="visual-card-header store-card-header">
               <div className="window-dots">
                 <span className="dot dot-red"></span>
                 <span className="dot dot-yellow"></span>
                 <span className="dot dot-green"></span>
               </div>
               <div className="window-title">
-                <Radio size={14} className="text-accent mr-1 animate-pulse" />
-                Synapse Neural Cluster // SXM5 Node 01
+                <Sparkles size={14} className="text-warning mr-1" />
+                <span className="font-semibold text-white">FEATURED DEAL OF THE DAY</span>
               </div>
               <span className="status-indicator-live">
-                <span className="indicator-pulse"></span> ONLINE
+                <span className="indicator-pulse"></span> IN STOCK
               </span>
             </div>
 
             <div className="hero-image-wrap">
               <img 
                 src="/assets/images/hero.jpg" 
-                alt="Synapse AI Platform Holographic Neural Core" 
+                alt="Synapse AI Store Featured Tool" 
                 className="hero-img"
                 loading="eager"
               />
               <div className="image-overlay-glow"></div>
 
-              {/* Floating Holographic Micro-Badges */}
-              <div className="floating-badge badge-top-left">
+              {/* Floating Store Badge Top-Left: Deal / Discount */}
+              <div className="floating-badge badge-top-left store-deal-badge">
                 <div className="badge-icon-wrap violet">
-                  <Wand2 size={16} />
+                  <Flame size={16} />
                 </div>
                 <div className="badge-info">
-                  <span className="f-title">Visionary Diffusion X</span>
-                  <span className="f-sub">8K Ultra Render • 0.8s</span>
+                  <span className="f-title">40% OFF FLASH DEAL</span>
+                  <span className="f-sub">Perpetual Commercial License</span>
                 </div>
               </div>
 
-              <div className="floating-badge badge-bottom-right">
-                <div className="badge-icon-wrap cyan">
-                  <Code2 size={16} />
-                </div>
-                <div className="badge-info">
-                  <span className="f-title">DeepCode Copilot Pro</span>
-                  <span className="f-sub">100% Test Pass • Zero Lint</span>
-                </div>
-              </div>
-
-              <div className="floating-badge badge-bottom-left">
+              {/* Floating Store Badge Bottom-Right: Live Purchase Notification */}
+              <div className="floating-badge badge-bottom-right store-order-badge">
                 <div className="badge-icon-wrap emerald">
-                  <ShieldAlert size={16} />
+                  <CheckCircle2 size={16} />
                 </div>
                 <div className="badge-info">
-                  <span className="f-title">Enterprise Shield</span>
-                  <span className="f-sub">Zero Data Retention Active</span>
+                  <span className="f-title">Verified Buyer Order</span>
+                  <span className="f-sub">Sophea K. bought Omni-LLM • 2m ago</span>
+                </div>
+              </div>
+
+              {/* Floating Store Badge Bottom-Left: Payment Security */}
+              <div className="floating-badge badge-bottom-left store-secure-badge">
+                <div className="badge-icon-wrap cyan">
+                  <ShieldCheck size={16} />
+                </div>
+                <div className="badge-info">
+                  <span className="f-title">Official Synapse Store</span>
+                  <span className="f-sub">Instant KHQR & Card Access</span>
                 </div>
               </div>
             </div>
 
-            <div className="visual-card-footer">
-              <div className="runtime-info">
-                <Cpu size={14} />
-                <span>NVIDIA H100 SXM5 Tensor Core Cluster</span>
+            {/* Interactive Store Product Footer Bar with 1-Click Add to Cart */}
+            <div className="visual-card-footer store-visual-footer">
+              <div className="featured-product-brief">
+                <div className="product-title-row">
+                  {/* <span className="product-name">{featuredProduct.name || 'Synapse Omni-LLM 4.5'}</span> */}
+                  {/* <span className="product-badge-deal">SAVE 40%</span> */}
+                </div>
+                <div className="product-price-row">
+                  {/* <span className="price-tag-hero">{formatPrice(featuredProduct.priceLifetime || featuredProduct.price || 199)}</span> */}
+                  {/* <span className="price-original-hero">{formatPrice(349)}</span> */}
+                  {/* <span className="license-type-note">One-time payment • Lifetime updates</span> */}
+                </div>
               </div>
-              <div className="runtime-metrics">
-                <span className="metric-tag">
-                  <Gauge size={13} /> Latency: 14ms
-                </span>
-                <span className="metric-tag">
-                  400B MoE Weights
-                </span>
-              </div>
+             
             </div>
           </div>
         </div>

@@ -2524,12 +2524,21 @@ input:checked+.slider:before {
   gap: 0.65rem;
 }
 
-.footer-links a {
+.footer-links a,
+.footer-links button {
   font-size: 0.88rem;
   color: var(--text-muted);
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: inherit;
+  cursor: pointer;
+  text-align: left;
+  transition: var(--transition-fast);
 }
 
-.footer-links a:hover {
+.footer-links a:hover,
+.footer-links button:hover {
   color: #ffffff;
   padding-left: 4px;
 }
@@ -5458,6 +5467,47 @@ input:checked+.slider:before {
 /* ==========================================================================
    KHQR DYNAMIC GATEWAY PAYMENT STYLING (khqr.cc)
    ========================================================================== */
+.khqr-checkout-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+  padding-bottom: 0.85rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.khqr-single-method-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(225, 29, 72, 0.12);
+  border: 1px solid rgba(225, 29, 72, 0.35);
+  border-radius: 999px;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #fb7185;
+  box-shadow: 0 0 16px rgba(225, 29, 72, 0.15);
+  white-space: nowrap;
+}
+
+.khqr-badge-pulse-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #f43f5e;
+  box-shadow: 0 0 8px #f43f5e;
+  animation: pulseDot 1.8s infinite;
+}
+
+.badge-khqr-exclusive-text {
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
 .payment-tab-khqr {
   position: relative;
   background: rgba(225, 29, 72, 0.08) !important;
@@ -7289,8 +7339,17 @@ input:checked+.slider:before {
 
   .step-sub {
     font-size: 0.82rem !important;
-    margin-bottom: 1rem !important;
+    margin-bottom: 0.5rem !important;
     line-height: 1.45 !important;
+  }
+
+  .khqr-checkout-header-row {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 0.65rem !important;
+    margin-bottom: 1rem !important;
+    padding-bottom: 0.75rem !important;
   }
 
   /* Payment Method Tabs (Clean 3-Tab Grid) */
@@ -7753,4 +7812,200 @@ input:checked+.slider:before {
   .login-header h2 {
     font-size: 1.5rem;
   }
+
+  .footer-store-trust-strip {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+  }
+
+  .store-visual-footer {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 0.85rem !important;
+  }
+
+  .store-visual-footer .btn {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+}
+
+/* ==========================================================================
+   STORE HERO & FOOTER E-COMMERCE STYLES
+   ========================================================================== */
+.store-badge-pulse {
+  border-color: rgba(6, 182, 212, 0.4);
+}
+
+.store-card-header {
+  background: rgba(8, 12, 20, 0.85) !important;
+}
+
+.store-deal-badge {
+  border-color: rgba(245, 158, 11, 0.5) !important;
+}
+
+.store-order-badge {
+  border-color: rgba(16, 185, 129, 0.5) !important;
+}
+
+.store-secure-badge {
+  border-color: rgba(6, 182, 212, 0.5) !important;
+}
+
+.store-visual-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem !important;
+  background: rgba(8, 12, 20, 0.95);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.featured-product-brief {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  text-align: left;
+}
+
+.product-title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.product-title-row .product-name {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.product-badge-deal {
+  font-size: 0.65rem;
+  font-weight: 800;
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  padding: 0.1rem 0.45rem;
+  border-radius: 4px;
+}
+
+.product-price-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.8rem;
+}
+
+.price-tag-hero {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #38bdf8;
+}
+
+.price-original-hero {
+  font-size: 0.85rem;
+  color: #64748b;
+  text-decoration: line-through;
+}
+
+.license-type-note {
+  font-size: 0.72rem;
+  color: #94a3b8;
+}
+
+/* Footer Store Enhancements */
+.footer-store-trust-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  padding: 1.25rem 1.5rem;
+  background: rgba(15, 23, 42, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-lg);
+  margin-bottom: 2.5rem;
+}
+
+.trust-strip-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #cbd5e1;
+  letter-spacing: 0.04em;
+}
+
+.trust-strip-badges {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.payment-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.75rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: #e2e8f0;
+}
+
+.payment-pill.khqr-pill {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: #fca5a5;
+}
+
+.badge-khqr-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #ef4444;
+}
+
+.payment-pill.khqr-instant-pill {
+  background: rgba(6, 182, 212, 0.12);
+  border-color: rgba(6, 182, 212, 0.35);
+  color: #67e8f9;
+}
+
+.payment-pill.card-pill {
+  background: rgba(59, 130, 246, 0.1);
+  border-color: rgba(59, 130, 246, 0.3);
+  color: #93c5fd;
+}
+
+.payment-pill.crypto-pill {
+  background: rgba(168, 85, 247, 0.1);
+  border-color: rgba(168, 85, 247, 0.3);
+  color: #d8b4fe;
+}
+
+.payment-pill.ssl-pill {
+  background: rgba(16, 185, 129, 0.1);
+  border-color: rgba(16, 185, 129, 0.3);
+  color: #6ee7b7;
+}
+
+.footer-trust-tags {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  font-size: 0.78rem;
+  color: #94a3b8;
+}
+
+.footer-trust-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
 }

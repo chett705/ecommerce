@@ -112,8 +112,8 @@ export default function PlatformFeatures() {
                 Real-time OWASP security audit and automated remediation
               </li>
             </ul>
-            <a href="#playground" className="btn btn-primary btn-glow mt-4">
-              <span>Try DeepCode in Sandbox</span>
+            <a href="#tools" className="btn btn-primary btn-glow mt-4">
+              <span>View DeepCode in Store</span>
               <ArrowRight size={16} />
             </a>
           </div>

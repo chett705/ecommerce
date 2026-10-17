@@ -43,17 +43,7 @@ export default function Navbar({ onOpenSearch, onOpenAdmin, currentUser, onOpenL
   return (
     <>
       {/* Top Notification Announcement Bar */}
-      <div className="announcement-bar">
-        <div className="container announcement-inner">
-          <span className="badge-pill">✨ SPRING 2026 RELEASE</span>
-          <p className="announcement-text">
-            <strong>Synapse Omni-LLM 4.5 & VideoGen 4D</strong> are now live! Get <strong>20% OFF</strong> all tools & licenses with code <span className="promo-code-chip">NEURON20</span>
-          </p>
-          <a href="#tools" className="announcement-link">
-            Explore Tools <ArrowRight size={14} />
-          </a>
-        </div>
-      </div>
+      
 
       {/* Main Header */}
       <header className={`site-header ${isScrolled ? 'scrolled' : ''}`}>
@@ -72,10 +62,6 @@ export default function Navbar({ onOpenSearch, onOpenAdmin, currentUser, onOpenL
             <a href="#tools" className="nav-link">
               <Boxes size={16} />
               <span>AI Tools</span>
-            </a>
-            <a href="#playground" className="nav-link">
-              <Sparkles size={16} />
-              <span>Live Sandbox</span>
             </a>
             <a href="#features" className="nav-link">
               <span>Platform</span>
@@ -153,14 +139,15 @@ export default function Navbar({ onOpenSearch, onOpenAdmin, currentUser, onOpenL
                 </button>
               </div>
             ) : (
-              <button 
-                className="btn-signin-nav"
-                onClick={onOpenLogin}
-                title="Sign in / Login"
-              >
-                <LogIn size={15} />
-                <span>Sign In</span>
-              </button>
+              // <button 
+              //   className="btn-signin-nav"
+              //   onClick={onOpenLogin}
+              //   title="Sign in / Login"
+              // >
+              //   <LogIn size={15} />
+              //   <span>Sign In</span>
+              // </button>
+              <div></div>
             )}
 
             {/* Cart Button */}
@@ -198,9 +185,6 @@ export default function Navbar({ onOpenSearch, onOpenAdmin, currentUser, onOpenL
             <nav className="mobile-nav-links">
               <a href="#tools" onClick={() => setMobileMenuOpen(false)} className="mobile-nav-link">
                 <Boxes size={18} /> AI Tools Marketplace
-              </a>
-              <a href="#playground" onClick={() => setMobileMenuOpen(false)} className="mobile-nav-link">
-                <Sparkles size={18} /> Live AI Sandbox
               </a>
               <a href="#features" onClick={() => setMobileMenuOpen(false)} className="mobile-nav-link">
                 Platform Architecture

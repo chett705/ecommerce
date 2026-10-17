@@ -2,7 +2,6 @@ import React, { useState, useRef, useEffect } from 'react';
 import { AppProvider, useApp } from './context/AppContext';
 import Navbar from './components/Navbar';
 import Hero from './components/Hero';
-import LivePlayground from './components/LivePlayground';
 import ToolsCatalog from './components/ToolsCatalog';
 import PlatformFeatures from './components/PlatformFeatures';
 import Testimonials from './components/Testimonials';
@@ -163,14 +162,11 @@ function MainContent() {
           </div>
         </section>
 
-        {/* Live Interactive Playground Sandbox */}
-        <LivePlayground />
-
         {/* AI Tools Catalog / Marketplace */}
         <ToolsCatalog searchRef={searchInputRef} />
 
         {/* Platform & Infrastructure Highlights */}
-        <PlatformFeatures />
+        {/* <PlatformFeatures /> */}
 
         {/* Customer Testimonials & Reviews */}
         <Testimonials />
@@ -179,7 +175,7 @@ function MainContent() {
         <FaqSection />
 
         {/* High-Impact CTA Banner */}
-        <section className="cta-banner-section">
+        {/* <section className="cta-banner-section">
           <div className="container">
             <div className="cta-card">
               <div className="cta-card-glow"></div>
@@ -189,22 +185,22 @@ function MainContent() {
                 </span>
                 <h2>Start Supercharging Your Workflow with 45+ AI Engines</h2>
                 <p>
-                  Join 185,000+ engineers, designers, and founders who replaced 10 separate AI subscriptions with Synapse.AI.
+                  Join 185,000+ engineers, designers, and founders who replaced monthly AI subscriptions with Synapse.AI perpetual licenses.
                 </p>
                 <div className="cta-action-row">
                   <a href="#tools" className="btn btn-primary btn-xl btn-glow">
                     <Sparkles size={18} />
-                    <span>Browse Marketplace</span>
+                    <span>Shop AI Tools & Deals</span>
                   </a>
-                  <a href="#playground" className="btn btn-secondary btn-xl">
-                    <span>Try Live AI Sandbox</span>
+                  <a href="#faq" className="btn btn-secondary btn-xl">
+                    <span>Payment & Licensing FAQ</span>
                     <ArrowRight size={18} />
                   </a>
                 </div>
               </div>
             </div>
           </div>
-        </section>
+        </section> */}
       </main>
 
       {/* Footer */}

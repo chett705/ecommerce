@@ -1,11 +1,16 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { 
-  Brain, 
+  ShoppingBag, 
   ArrowRight, 
   Lock, 
   Check, 
-  Globe
+  ShieldCheck,
+  Smartphone,
+  Zap,
+  RotateCcw,
+  Sparkles,
+  Tag
 } from 'lucide-react';
 
 const GithubIcon = () => (
@@ -39,7 +44,7 @@ const DiscordIcon = () => (
 );
 
 export default function Footer() {
-  const { addToast } = useApp();
+  const { addToast, setIsCartOpen } = useApp();
   const [newsletterEmail, setNewsletterEmail] = useState('');
   const [subscribed, setSubscribed] = useState(false);
 
@@ -47,28 +52,28 @@ export default function Footer() {
     e.preventDefault();
     if (!newsletterEmail) return;
     setSubscribed(true);
-    addToast('🎉 Subscribed to Synapse Intelligence newsletter!', 'success');
+    addToast('🎉 VIP Store discount code NEURON20 sent to your email!', 'success');
   };
 
   return (
     <footer className="site-footer">
       <div className="container footer-container">
-        {/* Brand Column */}
+        {/* Brand & Store Overview Column */}
         <div className="footer-col brand-col">
           <a href="#" className="brand-logo footer-logo">
             <div className="logo-symbol">
-              <Brain size={22} className="logo-icon" />
+              <ShoppingBag size={22} className="logo-icon text-cyan" />
             </div>
-            <span className="logo-text">SYNAPSE<span className="logo-gradient">.AI</span></span>
+            <span className="logo-text">SYNAPSE<span className="logo-gradient"> STORE</span></span>
           </a>
 
           <p className="footer-bio">
-            The premier unified marketplace and cloud subscription platform for foundation AI models, autonomous agents, and generative developer tooling.
+            The premier digital marketplace to buy verified AI tools, autonomous coding agents, and perpetual software licenses. Pay once via Cambodia National KHQR or Card — zero recurring subscriptions.
           </p>
 
           <div className="system-status">
             <span className="status-dot-active"></span>
-            <span>All AI Clusters Operational (99.99% SLA)</span>
+            <span>Store Open 24/7 • Automated Instant Delivery</span>
           </div>
 
           <div className="footer-socials">
@@ -87,9 +92,9 @@ export default function Footer() {
           </div>
         </div>
 
-        {/* Marketplace Categories */}
+        {/* Shop AI Tools Categories */}
         <div className="footer-col">
-          <h4 className="footer-heading">AI Marketplace</h4>
+          <h4 className="footer-heading">Shop AI Tools</h4>
           <ul className="footer-links">
             <li><a href="#tools">Synapse Omni-LLM 4.5</a></li>
             <li><a href="#tools">Visionary Diffusion X</a></li>
@@ -97,65 +102,101 @@ export default function Footer() {
             <li><a href="#tools">EchoVoice Neural Studio</a></li>
             <li><a href="#tools">VideoGen 4D Ultra</a></li>
             <li><a href="#tools">AgenticFlow Automator</a></li>
+            <li><a href="#tools" className="text-cyan font-semibold">Browse All 45+ Tools & Deals →</a></li>
           </ul>
         </div>
 
-        {/* Platform & Resources */}
+        {/* Store Customer Service & Orders */}
         <div className="footer-col">
-          <h4 className="footer-heading">Platform & Tools</h4>
+          <h4 className="footer-heading">Orders & Support</h4>
           <ul className="footer-links">
-            <li><a href="#tools">AI Models Marketplace</a></li>
-            <li><a href="#playground">Interactive Sandbox</a></li>
-            <li><a href="#features">Cluster Architecture</a></li>
-            <li><a href="#testimonials">Developer Stories</a></li>
-            <li><a href="#faq">License & Security FAQ</a></li>
-            <li><a href="#faq">Cambodia KHQR Gateway</a></li>
+            <li>
+              <button 
+                type="button" 
+                onClick={() => setIsCartOpen(true)}
+              >
+                Shopping Cart & Checkout
+              </button>
+            </li>
+            <li><a href="#faq">Cambodia KHQR Payment Guide</a></li>
+            <li><a href="#faq">Instant Digital Delivery SLA</a></li>
+            <li><a href="#faq">14-Day Money-Back Guarantee</a></li>
+            <li><a href="#faq">Commercial Licensing Rights</a></li>
+            <li><a href="#testimonials">Customer Reviews & Proof</a></li>
           </ul>
         </div>
 
-        {/* Newsletter Signup */}
+        {/* VIP Store Deals & Newsletter Signup */}
         <div className="footer-col">
-          <h4 className="footer-heading">Neural Dispatch</h4>
+          <h4 className="footer-heading">VIP Deals & Discounts</h4>
           <p className="newsletter-sub">
-            Receive newly released frontier weights, open-source model evaluations, and special discount codes.
+            Join 25,000+ buyers to receive secret flash discounts, bundle coupons, and new AI tool releases.
           </p>
 
           {subscribed ? (
             <div className="newsletter-success-box">
               <Check size={18} className="text-success inline mr-2" />
-              <span>You are subscribed to the Dispatch!</span>
+              <span>You are on the VIP discount list! Use code <strong>NEURON20</strong> for 20% off.</span>
             </div>
           ) : (
             <form className="newsletter-form" onSubmit={handleNewsletterSubmit}>
               <input
                 type="email"
-                placeholder="developer@company.com"
+                placeholder="buyer@company.com"
                 required
                 value={newsletterEmail}
                 onChange={(e) => setNewsletterEmail(e.target.value)}
               />
               <button type="submit" className="btn btn-primary btn-sm">
-                <span>Join</span>
+                <span>Get VIP Deals</span>
                 <ArrowRight size={14} />
               </button>
             </form>
           )}
 
           <span className="spam-free-note">
-            <Lock size={12} className="inline mr-1" /> No spam. Unsubscribe with 1-click anytime.
+            <Lock size={12} className="inline mr-1" /> No spam. 100% verified discounts. Unsubscribe anytime.
           </span>
         </div>
       </div>
 
+      <div className="container">
+        {/* Verified Secure Store Payments Strip */}
+        <div className="footer-store-trust-strip">
+          <div className="trust-strip-label">
+            <ShieldCheck size={16} className="text-success" />
+            <span>VERIFIED SECURE PAYMENT GATEWAY:</span>
+          </div>
+          <div className="trust-strip-badges">
+            <span className="payment-pill khqr-pill">
+              <span className="badge-khqr-dot"></span> Cambodia National KHQR (Bakong / ABA / All Banks)
+            </span>
+            <span className="payment-pill khqr-instant-pill">
+              <Smartphone size={14} /> Instant Mobile Banking Scan
+            </span>
+            <span className="payment-pill ssl-pill">
+              <Lock size={14} /> 256-Bit SSL Encrypted Checkout
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Footer Bottom Bar */}
       <div className="footer-bottom">
         <div className="container footer-bottom-inner">
-          <p>&copy; 2026 SYNAPSE.AI Technologies Inc. All rights reserved.</p>
+          <p>&copy; 2026 SYNAPSE.AI Digital Store. All rights reserved. Registered Digital Software Marketplace.</p>
+          
+          <div className="footer-trust-tags">
+            <span className="footer-trust-tag"><Zap size={13} className="text-cyan" /> Instant Delivery</span>
+            <span className="footer-trust-tag"><ShieldCheck size={13} className="text-success" /> 100% Genuine Licenses</span>
+            <span className="footer-trust-tag"><Tag size={13} className="text-warning" /> Zero Monthly Fees</span>
+          </div>
+
           <div className="legal-links">
-            <a href="#">Privacy Policy</a>
-            <a href="#">Terms of Service</a>
-            <a href="#">Security & SOC2</a>
-            <a href="#">Status Page</a>
-            <a href="#login" className="text-muted">Staff Login</a>
+            <a href="#faq">Refund Policy</a>
+            <a href="#faq">Terms of Sale</a>
+            <a href="#faq">Privacy & Security</a>
+            <a href="#login" className="text-muted">Staff / Admin Login</a>
           </div>
         </div>
       </div>

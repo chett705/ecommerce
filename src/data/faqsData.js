@@ -17,7 +17,7 @@ export const FAQS_DATA = [
   },
   {
     question: 'What payment methods do you accept?',
-    answer: 'We accept Cambodia National KHQR mobile banking (instant scan via ABA Mobile, Bakong, and all Cambodian banks), major credit and debit cards (Visa, Mastercard, American Express), Apple Pay, Google Pay, and Web3 cryptocurrencies (Bitcoin, Ethereum, USDT) via our encrypted payment gateway.'
+    answer: 'We exclusively accept Cambodia National KHQR mobile banking payments. You can scan and pay in real time using ABA Mobile, Bakong, ACLEDA, Canadia, Wing, and all Cambodian banking or mobile wallet apps via our encrypted KHQR payment gateway.'
   },
   {
     question: 'Is there a money-back guarantee?',
