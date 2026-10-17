@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { TOOLS_DATA } from '../data/toolsData';
+import { apiUrl } from '../utils/api';
 
 const AppContext = createContext();
 
@@ -46,7 +47,7 @@ export function AppProvider({ children }) {
 
   const refreshTools = useCallback(async () => {
     try {
-      const res = await fetch('/api/products');
+      const res = await fetch(apiUrl('/api/products'));
       if (res.ok) {
         const data = await res.json();
         const list = data.products || data.tools;

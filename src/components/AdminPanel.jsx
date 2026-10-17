@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { TOOLS_DATA } from '../data/toolsData';
+import { apiUrl } from '../utils/api';
 import { 
   LayoutDashboard, 
   Boxes, 
@@ -162,12 +163,12 @@ export default function AdminPanel({ onCloseAdmin, onLogout }) {
     setLoading(true);
     try {
       const [statsRes, toolsRes, categoriesRes, ordersRes, subsRes, settingsRes] = await Promise.all([
-        fetch('/api/stats').then(r => r.json()).catch(() => null),
-        fetch('/api/products').then(r => r.json()).catch(() => null),
-        fetch('/api/categories').then(r => r.json()).catch(() => null),
-        fetch('/api/orders').then(r => r.json()).catch(() => null),
-        fetch('/api/subscribers').then(r => r.json()).catch(() => null),
-        fetch('/api/settings').then(r => r.json()).catch(() => null)
+        fetch(apiUrl('/api/stats')).then(r => r.json()).catch(() => null),
+        fetch(apiUrl('/api/products')).then(r => r.json()).catch(() => null),
+        fetch(apiUrl('/api/categories')).then(r => r.json()).catch(() => null),
+        fetch(apiUrl('/api/orders')).then(r => r.json()).catch(() => null),
+        fetch(apiUrl('/api/subscribers')).then(r => r.json()).catch(() => null),
+        fetch(apiUrl('/api/settings')).then(r => r.json()).catch(() => null)
       ]);
 
       if (statsRes?.stats) setStats(statsRes.stats);
@@ -201,7 +202,7 @@ export default function AdminPanel({ onCloseAdmin, onLogout }) {
   useEffect(() => {
     const pollTimer = setInterval(async () => {
       try {
-        const res = await fetch('/api/orders');
+        const res = await fetch(apiUrl('/api/orders'));
         const data = await res.json();
         if (data?.orders) {
           if (prevOrderCount > 0 && data.orders.length > prevOrderCount) {
@@ -234,7 +235,7 @@ export default function AdminPanel({ onCloseAdmin, onLogout }) {
     setActivatingLoading(true);
 
     try {
-      const res = await fetch(`/api/orders/${activatingOrder.id}/activate`, {
+      const res = await fetch(apiUrl(`/api/orders/${activatingOrder.id}/activate`), {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -292,7 +293,7 @@ export default function AdminPanel({ onCloseAdmin, onLogout }) {
     try {
       if (editingCategory) {
         // PUT update in Laravel
-        const res = await fetch(`/api/categories/${editingCategory.id}`, {
+        const res = await fetch(apiUrl(`/api/categories/${editingCategory.id}`), {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(categoryFormData)
@@ -304,7 +305,7 @@ export default function AdminPanel({ onCloseAdmin, onLogout }) {
         }
       } else {
         // POST create in Laravel
-        const res = await fetch('/api/categories', {
+        const res = await fetch(apiUrl('/api/categories'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(categoryFormData)
@@ -325,7 +326,7 @@ export default function AdminPanel({ onCloseAdmin, onLogout }) {
   const handleDeleteCategory = async (id, name) => {
     if (!window.confirm(`Are you sure you want to delete category "${name}"? Associated products will become uncategorized.`)) return;
     try {
-      const res = await fetch(`/api/categories/${id}`, { method: 'DELETE' });
+      const res = await fetch(apiUrl(`/api/categories/${id}`), { method: 'DELETE' });
       const data = await res.json();
       if (data.success) {
         setCategories(prev => prev.filter(c => c.id !== id));
@@ -380,7 +381,7 @@ export default function AdminPanel({ onCloseAdmin, onLogout }) {
     try {
       if (editingTool) {
         // PUT update in Laravel
-        const res = await fetch(`/api/products/${editingTool.id}`, {
+        const res = await fetch(apiUrl(`/api/products/${editingTool.id}`), {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
@@ -392,7 +393,7 @@ export default function AdminPanel({ onCloseAdmin, onLogout }) {
         }
       } else {
         // POST create in Laravel
-        const res = await fetch('/api/products', {
+        const res = await fetch(apiUrl('/api/products'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
@@ -413,7 +414,7 @@ export default function AdminPanel({ onCloseAdmin, onLogout }) {
   const handleDeleteTool = async (id, name) => {
     if (!window.confirm(`Are you sure you want to delete "${name}" from the database?`)) return;
     try {
-      await fetch(`/api/products/${id}`, { method: 'DELETE' });
+      await fetch(apiUrl(`/api/products/${id}`), { method: 'DELETE' });
       // Persist deleted tool ID locally so refresh never restores it
       let deleted = [];
       try {
@@ -440,7 +441,7 @@ export default function AdminPanel({ onCloseAdmin, onLogout }) {
   // Order Status update
   const handleUpdateOrderStatus = async (orderId, newStatus) => {
     try {
-      const res = await fetch(`/api/orders/${orderId}/status`, {
+      const res = await fetch(apiUrl(`/api/orders/${orderId}/status`), {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus })
@@ -459,7 +460,7 @@ export default function AdminPanel({ onCloseAdmin, onLogout }) {
   const handleSaveSettings = async (e) => {
     e.preventDefault();
     try {
-      const res = await fetch('/api/settings', {
+      const res = await fetch(apiUrl('/api/settings'), {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(settings)
@@ -485,7 +486,7 @@ export default function AdminPanel({ onCloseAdmin, onLogout }) {
     setKhqrTesting(true);
     setKhqrTestResult(null);
     try {
-      const res = await fetch('/api/payment/khqr/generate', {
+      const res = await fetch(apiUrl('/api/payment/khqr/generate'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

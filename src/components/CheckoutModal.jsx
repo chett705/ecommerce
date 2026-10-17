@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
+import { apiUrl } from '../utils/api';
 import {
   X,
   CheckCircle2,
@@ -70,7 +71,7 @@ export default function CheckoutModal() {
     setKhqrIframeLoading(true);
 
     try {
-      const res = await fetch('/api/payment/khqr/generate', {
+      const res = await fetch(apiUrl('/api/payment/khqr/generate'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -110,7 +111,7 @@ export default function CheckoutModal() {
 
     const pollTimer = setInterval(async () => {
       try {
-        const res = await fetch(`/api/orders/${currentOrder.id}`);
+        const res = await fetch(apiUrl(`/api/orders/${currentOrder.id}`));
         const data = await res.json();
         if (data.success && data.order?.activation_link) {
           setActivationLink(data.order.activation_link);
@@ -202,7 +203,7 @@ export default function CheckoutModal() {
     // Send order to backend API
     try {
       if (activeTxId) {
-        const res = await fetch(`/api/payment/khqr/verify/${activeTxId}?confirm=true`);
+        const res = await fetch(apiUrl(`/api/payment/khqr/verify/${activeTxId}?confirm=true`));
         if (res.ok) {
           const data = await res.json();
           if (data.success && data.api_key) {
@@ -220,7 +221,7 @@ export default function CheckoutModal() {
           setCurrentOrder(localOrder);
         }
       } else {
-        const res = await fetch('/api/orders', {
+        const res = await fetch(apiUrl('/api/orders'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
