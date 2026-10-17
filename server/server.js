@@ -395,13 +395,16 @@ app.get('/api/payment/khqr/verify/:id', (req, res) => {
 const DIST_DIR = path.join(__dirname, '..', 'dist');
 if (fs.existsSync(DIST_DIR)) {
   app.use(express.static(DIST_DIR));
-  app.get('*', (req, res, next) => {
-    if (req.path.startsWith('/api')) return next();
-    res.sendFile(path.join(DIST_DIR, 'index.html'));
+  app.use((req, res, next) => {
+    if (req.method === 'GET' && !req.path.startsWith('/api')) {
+      return res.sendFile(path.join(DIST_DIR, 'index.html'));
+    }
+    next();
   });
 }
 
-app.listen(PORT, () => {
-  console.log(`🚀 Synapse Backend Server running on http://localhost:${PORT}`);
+const HOST = '0.0.0.0';
+app.listen(PORT, HOST, () => {
+  console.log(`🚀 Synapse Backend Server running on http://${HOST}:${PORT}`);
   console.log(`💳 ABA PAY Link configured: ${readDB().settings?.abaPayLink}`);
 });
