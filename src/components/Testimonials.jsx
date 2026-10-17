@@ -5,6 +5,7 @@ import { Star, MessageSquareQuote, CheckCircle2 } from 'lucide-react';
 export default function Testimonials() {
   return (
     <section className="testimonials-section" id="testimonials">
+      <div id="reviews" style={{ position: 'relative', top: '-80px', visibility: 'hidden' }}></div>
       <div className="container">
         <div className="section-header text-center">
           <span className="section-tag">

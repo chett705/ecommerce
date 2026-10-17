@@ -4,12 +4,8 @@ import {
   X, 
   Lock, 
   Mail, 
-  ShieldCheck, 
   ArrowRight, 
-  Sparkles, 
-  User, 
   AlertCircle, 
-  CheckCircle2, 
   Cpu 
 } from 'lucide-react';
 
@@ -69,17 +65,7 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess }) {
     }
   };
 
-  const fillAdminCredentials = () => {
-    setEmail('admin@synapse.ai');
-    setPassword('admin123');
-    setErrorMessage('');
-  };
 
-  const fillUserCredentials = () => {
-    setEmail('user@venturelabs.ai');
-    setPassword('user123');
-    setErrorMessage('');
-  };
 
   return (
     <div className="modal-backdrop">
@@ -123,10 +109,7 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess }) {
             </div>
 
             <div className="form-group">
-              <div className="label-row-between">
-                <label htmlFor="loginPassword">Password</label>
-                <span className="hint-text">Admin: admin123</span>
-              </div>
+              <label htmlFor="loginPassword">Password</label>
               <div className="input-with-icon-wrap">
                 <Lock size={16} className="input-field-icon" />
                 <input
@@ -149,35 +132,6 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess }) {
               <ArrowRight size={16} />
             </button>
           </form>
-
-          {/* Quick Demo Credentials Helpers */}
-          <div className="quick-creds-box">
-            <div className="quick-creds-label">Quick Demo Access (1-Click Fill):</div>
-            <div className="quick-creds-buttons">
-              <button
-                type="button"
-                className="chip-cred chip-admin"
-                onClick={fillAdminCredentials}
-              >
-                <ShieldCheck size={14} className="text-cyan inline mr-1" />
-                <span>Admin Login (admin@synapse.ai / admin123)</span>
-              </button>
-
-              <button
-                type="button"
-                className="chip-cred chip-user"
-                onClick={fillUserCredentials}
-              >
-                <User size={14} className="inline mr-1" />
-                <span>Customer Login (user@venturelabs.ai)</span>
-              </button>
-            </div>
-          </div>
-
-          <div className="login-footer-security">
-            <ShieldCheck size={13} className="text-emerald inline mr-1" />
-            <span>Role-Based Access Control • End-to-End Encrypted Session</span>
-          </div>
         </div>
       </div>
     </div>

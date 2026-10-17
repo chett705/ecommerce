@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
+import { TOOLS_DATA } from '../data/toolsData';
 import { 
   LayoutDashboard, 
   Boxes, 
@@ -18,6 +19,7 @@ import {
   ExternalLink, 
   SmartphoneNfc, 
   ArrowLeft, 
+  ArrowRight,
   DollarSign, 
   TrendingUp, 
   Cpu, 
@@ -47,7 +49,7 @@ import {
 } from 'lucide-react';
 
 export default function AdminPanel({ onCloseAdmin, onLogout }) {
-  const { addToast, formatPrice } = useApp();
+  const { addToast, formatPrice, refreshTools } = useApp();
 
   const [activeTab, setActiveTab] = useState('overview'); // 'overview' | 'tools' | 'categories' | 'orders' | 'subscribers' | 'settings'
   const [loading, setLoading] = useState(false);
@@ -64,8 +66,21 @@ export default function AdminPanel({ onCloseAdmin, onLogout }) {
     abaOrdersCount: 3
   });
 
-  const [tools, setTools] = useState([]);
-  const [categories, setCategories] = useState([]);
+  const [tools, setTools] = useState(() => {
+    try {
+      const saved = localStorage.getItem('synapse_custom_tools');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return [];
+  });
+  const [categories, setCategories] = useState([
+    { id: 1, name: 'LLM & Reasoning', slug: 'llm', color: '#8b5cf6', badge: 'Flagship' },
+    { id: 2, name: 'Code & Dev', slug: 'code', color: '#06b6d4', badge: 'Autopilot' },
+    { id: 3, name: 'Vision & Art', slug: 'vision', color: '#ec4899', badge: 'Generative' },
+    { id: 4, name: 'Video & 3D', slug: 'video', color: '#f59e0b', badge: 'Spatial' },
+    { id: 5, name: 'Audio & Voice', slug: 'audio', color: '#10b981', badge: 'Studio' },
+    { id: 6, name: 'AI Agents & Automation', slug: 'agents', color: '#6366f1', badge: 'Autonomous' }
+  ]);
   const [orders, setOrders] = useState([]);
   const [subscribers, setSubscribers] = useState([]);
   const [settings, setSettings] = useState({
@@ -156,7 +171,16 @@ export default function AdminPanel({ onCloseAdmin, onLogout }) {
       ]);
 
       if (statsRes?.stats) setStats(statsRes.stats);
-      if (toolsRes?.products || toolsRes?.tools) setTools(toolsRes.products || toolsRes.tools);
+      if (toolsRes?.products || toolsRes?.tools) {
+        const list = toolsRes.products || toolsRes.tools;
+        let deleted = [];
+        try {
+          deleted = JSON.parse(localStorage.getItem('synapse_deleted_tools') || '[]');
+        } catch {}
+        const filtered = list.filter(t => !deleted.includes(t.id) && !deleted.includes(t.slug) && !deleted.includes(t.product_id));
+        setTools(filtered);
+        localStorage.setItem('synapse_custom_tools', JSON.stringify(filtered));
+      }
       if (categoriesRes?.categories) setCategories(categoriesRes.categories);
       if (ordersRes?.orders) setOrders(ordersRes.orders);
       if (subsRes?.subscribers) setSubscribers(subsRes.subscribers);
@@ -389,12 +413,25 @@ export default function AdminPanel({ onCloseAdmin, onLogout }) {
   const handleDeleteTool = async (id, name) => {
     if (!window.confirm(`Are you sure you want to delete "${name}" from the database?`)) return;
     try {
-      const res = await fetch(`/api/products/${id}`, { method: 'DELETE' });
-      const data = await res.json();
-      if (data.success) {
-        setTools(prev => prev.filter(t => t.id !== id));
-        addToast(`Deleted ${name} from database`, 'info');
+      await fetch(`/api/products/${id}`, { method: 'DELETE' });
+      // Persist deleted tool ID locally so refresh never restores it
+      let deleted = [];
+      try {
+        deleted = JSON.parse(localStorage.getItem('synapse_deleted_tools') || '[]');
+      } catch {}
+      if (!deleted.includes(id)) {
+        deleted.push(id);
+        localStorage.setItem('synapse_deleted_tools', JSON.stringify(deleted));
       }
+      setTools(prev => {
+        const updated = prev.filter(t => t.id !== id);
+        try {
+          localStorage.setItem('synapse_custom_tools', JSON.stringify(updated));
+        } catch {}
+        return updated;
+      });
+      if (refreshTools) refreshTools();
+      addToast(`Deleted "${name}" from database`, 'info');
     } catch (err) {
       addToast('Error deleting product', 'error');
     }
@@ -474,17 +511,40 @@ export default function AdminPanel({ onCloseAdmin, onLogout }) {
 
   // Filtered products list
   const filteredTools = tools.filter(t => {
-    const matchesSearch = t.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-      (t.shortDesc || t.short_desc || '').toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCat = selectedCategoryFilter === 'all' || 
-      (t.category === selectedCategoryFilter || t.category_slug === selectedCategoryFilter);
+    const nameStr = String(t.name || '').toLowerCase();
+    const descStr = String(t.shortDesc || t.short_desc || '').toLowerCase();
+    const query = (searchTerm || '').toLowerCase();
+    const matchesSearch = !query || nameStr.includes(query) || descStr.includes(query);
+
+    const toolCat = String(t.category_slug || t.category || t.category_id || '').toLowerCase();
+    const selectedCat = String(selectedCategoryFilter || 'all').toLowerCase();
+    const matchesCat = selectedCat === 'all' || toolCat === selectedCat || String(t.category_id) === selectedCat;
+
     return matchesSearch && matchesCat;
   });
 
-  const getCategoryDetails = (catSlug) => {
-    return categories.find(c => c.slug === catSlug) || {
-      name: catSlug ? catSlug.toUpperCase() : 'GENERAL',
-      color: '#8b5cf6'
+  const getCategoryDetails = (catVal) => {
+    if (!catVal && catVal !== 0) {
+      return { name: 'GENERAL', color: '#8b5cf6', slug: 'general' };
+    }
+    // Handle relation object from Laravel
+    if (typeof catVal === 'object' && catVal !== null) {
+      const slug = catVal.slug || String(catVal.id || 'general');
+      const name = catVal.name || slug.toUpperCase();
+      const color = catVal.color || '#8b5cf6';
+      return { name, color, slug };
+    }
+    const slugStr = String(catVal).toLowerCase();
+    const found = categories.find(c => 
+      String(c.slug || '').toLowerCase() === slugStr || 
+      String(c.id) === String(catVal) || 
+      String(c.name || '').toLowerCase() === slugStr
+    );
+    if (found) return found;
+    return {
+      name: String(catVal).toUpperCase(),
+      color: '#8b5cf6',
+      slug: slugStr
     };
   };
 
@@ -571,7 +631,7 @@ export default function AdminPanel({ onCloseAdmin, onLogout }) {
                 onClick={() => setActiveTab('orders')}
               >
                 <ShoppingCart size={18} />
-                <span>Orders & ABA PAY ({orders.length})</span>
+                <span>Customer Orders & KHQR ({orders.length})</span>
                 {pendingActivationCount > 0 && (
                   <span className="badge-pending-order-count">
                     {pendingActivationCount} NEW
@@ -584,7 +644,7 @@ export default function AdminPanel({ onCloseAdmin, onLogout }) {
                 onClick={() => setActiveTab('subscribers')}
               >
                 <Users size={18} />
-                <span>Active Subscribers ({subscribers.length})</span>
+                <span>Customer Directory ({subscribers.length})</span>
               </button>
 
               <button
@@ -592,48 +652,14 @@ export default function AdminPanel({ onCloseAdmin, onLogout }) {
                 onClick={() => setActiveTab('settings')}
               >
                 <Settings size={18} />
-                <span>ABA PayWay & Settings</span>
+                <span>Cambodia KHQR & Settings</span>
               </button>
             </nav>
 
-            {/* Quick ABA Link Preview in Sidebar */}
-            <div className="sidebar-aba-card">
-              <div className="aba-brand-mini">
-                <span className="aba-box-tag">ABA'</span>
-                <span>PayWay Active</span>
-              </div>
-              <code className="aba-mini-url">{settings.abaPayLink}</code>
-              <a 
-                href={settings.abaPayLink} 
-                target="_blank" 
-                rel="noopener noreferrer" 
-                className="aba-mini-test-btn"
-              >
-                <span>Test Link</span>
-                <ExternalLink size={12} />
-              </a>
-            </div>
           </aside>
 
           {/* Main Content Area */}
           <main className="admin-content-area">
-            {/* Global Real-Time New Order Alert Banner */}
-            {pendingActivationCount > 0 && (
-              <div className="admin-pending-alert-banner">
-                <div className="alert-content">
-                  <span className="pulse-alert-ring"></span>
-                  <BellRing size={20} className="text-warning spin-subtle" />
-                  <div>
-                    <strong>{pendingActivationCount} Order{pendingActivationCount > 1 ? 's' : ''} Awaiting Your Activation Link!</strong>
-                    <p>Customer completed payment and is waiting for you to publish their activation link.</p>
-                  </div>
-                </div>
-                <button className="btn btn-warning btn-sm btn-glow" onClick={() => setActiveTab('orders')}>
-                  <Zap size={14} className="mr-1 inline" /> Publish Activation Links Now →
-                </button>
-              </div>
-            )}
-
             {/* TAB 1: OVERVIEW */}
             {activeTab === 'overview' && (
               <div className="admin-tab-pane">
@@ -642,50 +668,93 @@ export default function AdminPanel({ onCloseAdmin, onLogout }) {
                     <h2>Platform Performance & Telemetry</h2>
                     <p>Live metrics synchronized in real-time from the Laravel SQLite database.</p>
                   </div>
-                  <div className="db-indicator-chip">
-                    <Database size={14} className="text-cyan inline mr-1" />
-                    <span>Database: <strong>database/database.sqlite</strong></span>
+                  <div className="tab-header-actions">
+                    <div className="db-indicator-chip">
+                      <Database size={14} className="text-cyan inline mr-1" />
+                      <span>Database: <strong>database/database.sqlite</strong></span>
+                    </div>
                   </div>
                 </div>
 
+                {/* KPI Metrics 4-Card Grid */}
                 <div className="admin-metrics-grid">
-                  <div className="admin-metric-card">
+                  <div className="admin-metric-card metric-card-revenue">
                     <div className="metric-header">
                       <span>Total Platform Revenue</span>
-                      <DollarSign size={20} className="text-success" />
+                      <div className="metric-icon-wrap icon-revenue">
+                        <DollarSign size={20} />
+                      </div>
                     </div>
-                    <div className="metric-val">{formatPrice(stats.totalRevenue || 48920)}</div>
+                    <div className="metric-val">{formatPrice(stats.totalRevenue || 3336.99)}</div>
                     <div className="metric-trend up">
                       <TrendingUp size={14} /> +24.8% from last month
                     </div>
                   </div>
 
-                  <div className="admin-metric-card">
+                  <div className="admin-metric-card metric-card-products">
                     <div className="metric-header">
                       <span>Managed Products</span>
-                      <Boxes size={20} className="text-accent" />
+                      <div className="metric-icon-wrap icon-products">
+                        <Boxes size={20} />
+                      </div>
                     </div>
                     <div className="metric-val">{tools.length}</div>
                     <div className="metric-trend info">Across {categories.length} active categories</div>
                   </div>
 
-                  <div className="admin-metric-card">
+                  <div className="admin-metric-card metric-card-categories">
                     <div className="metric-header">
                       <span>Product Categories</span>
-                      <FolderKanban size={20} className="text-purple" />
+                      <div className="metric-icon-wrap icon-categories">
+                        <FolderKanban size={20} />
+                      </div>
                     </div>
                     <div className="metric-val">{categories.length}</div>
                     <div className="metric-trend info">LLM, Vision, Code, Audio, Video, Agents</div>
                   </div>
 
-                  <div className="admin-metric-card">
+                  <div className="admin-metric-card metric-card-khqr">
                     <div className="metric-header">
-                      <span>ABA PAY / PayWay Volume</span>
-                      <SmartphoneNfc size={20} className="text-cyan" />
+                      <span>Cambodia KHQR Volume</span>
+                      <div className="metric-icon-wrap icon-khqr">
+                        <SmartphoneNfc size={20} />
+                      </div>
                     </div>
-                    <div className="metric-val">{orders.filter(o => o.payment_method?.includes('ABA') || o.paymentMethod?.includes('ABA')).length} Orders</div>
+                    <div className="metric-val">{orders.length} Orders</div>
                     <div className="metric-trend up">
                       <ShieldCheck size={14} /> Instant KHQR verification
+                    </div>
+                  </div>
+                </div>
+
+                {/* System Architecture Strip */}
+                <div className="admin-system-strip">
+                  <div className="system-strip-item">
+                    <div className="system-strip-dot online"></div>
+                    <div>
+                      <div className="system-strip-title">Laravel 12 API</div>
+                      <div className="system-strip-sub">REST Endpoints 127.0.0.1:8000</div>
+                    </div>
+                  </div>
+                  <div className="system-strip-item">
+                    <div className="system-strip-dot online"></div>
+                    <div>
+                      <div className="system-strip-title">SQLite Database</div>
+                      <div className="system-strip-sub">Local ACID storage synchronized</div>
+                    </div>
+                  </div>
+                  <div className="system-strip-item">
+                    <div className="system-strip-dot online"></div>
+                    <div>
+                      <div className="system-strip-title">Cambodia KHQR Gateway</div>
+                      <div className="system-strip-sub">Merchant: dyzz (National Standard)</div>
+                    </div>
+                  </div>
+                  <div className="system-strip-item">
+                    <div className="system-strip-dot online"></div>
+                    <div>
+                      <div className="system-strip-title">Currency Engines</div>
+                      <div className="system-strip-sub">USD ($) & KHR (៛) Active</div>
                     </div>
                   </div>
                 </div>
@@ -693,9 +762,13 @@ export default function AdminPanel({ onCloseAdmin, onLogout }) {
                 {/* Recent Orders Overview */}
                 <div className="admin-card-section mt-4">
                   <div className="card-section-header">
-                    <h3>Recent Transactions from Database</h3>
+                    <div>
+                      <h3>Recent Transactions from Database</h3>
+                      <p className="card-section-sub">Latest customer purchases processed via Cambodia National KHQR.</p>
+                    </div>
                     <button className="btn btn-secondary btn-sm" onClick={() => setActiveTab('orders')}>
-                      View All Orders
+                      <span>View All Orders</span>
+                      <ArrowRight size={14} className="ml-1 inline" />
                     </button>
                   </div>
 
@@ -706,7 +779,7 @@ export default function AdminPanel({ onCloseAdmin, onLogout }) {
                           <th>Order Number</th>
                           <th>Customer</th>
                           <th>Amount</th>
-                          <th>Gateway</th>
+                          <th>Payment Gateway</th>
                           <th>Status</th>
                           <th>Date</th>
                         </tr>
@@ -714,25 +787,40 @@ export default function AdminPanel({ onCloseAdmin, onLogout }) {
                       <tbody>
                         {orders.slice(0, 5).map(o => (
                           <tr key={o.id}>
-                            <td><code>{o.order_number || o.id}</code></td>
+                            <td><code className="order-code-badge">{o.order_number || o.id}</code></td>
                             <td>
-                              <strong>{o.customer_name || o.customerName}</strong>
-                              <div className="sub-text">{o.customer_email || o.customerEmail}</div>
+                              <div className="customer-cell-wrap">
+                                <div className="customer-avatar-mini">
+                                  {(o.customer_name || o.customerName || 'C')[0].toUpperCase()}
+                                </div>
+                                <div>
+                                  <strong>{o.customer_name || o.customerName || 'Anonymous Customer'}</strong>
+                                  <div className="sub-text">{o.customer_email || o.customerEmail || 'No email provided'}</div>
+                                </div>
+                              </div>
                             </td>
-                            <td><strong>${o.amount}</strong></td>
+                            <td><strong className="text-emerald">${Number(o.amount).toFixed(2)}</strong></td>
                             <td>
-                              <span className={(o.payment_method || o.paymentMethod)?.includes('ABA') ? 'badge-aba' : 'badge-neutral'}>
-                                {o.payment_method || o.paymentMethod}
+                              <span className="gateway-khqr-tag">
+                                Cambodia KHQR
                               </span>
                             </td>
                             <td>
-                              <span className={`status-pill ${(o.status || '').toLowerCase()}`}>
+                              <span className={`status-pill ${String(o.status || '').toLowerCase().replace(/\s+/g, '-')}`}>
+                                <span className="status-dot-mini"></span>
                                 {o.status}
                               </span>
                             </td>
-                            <td>{o.created_at ? new Date(o.created_at).toLocaleDateString() : o.date}</td>
+                            <td><span className="text-muted">{o.created_at ? new Date(o.created_at).toLocaleDateString() : (o.date || 'Today')}</span></td>
                           </tr>
                         ))}
+                        {orders.length === 0 && (
+                          <tr>
+                            <td colSpan="6" className="text-center py-4 text-muted">
+                              No transactions recorded yet in the database.
+                            </td>
+                          </tr>
+                        )}
                       </tbody>
                     </table>
                   </div>
@@ -791,76 +879,83 @@ export default function AdminPanel({ onCloseAdmin, onLogout }) {
                       <tr>
                         <th>Product Name</th>
                         <th>Category</th>
-                        <th>Lifetime Price</th>
-                        <th>Monthly Price</th>
-                        <th>Subscription</th>
+                        <th>License Price</th>
                         <th>Rating</th>
                         <th>Status</th>
                         <th>Actions</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredTools.map(tool => {
-                        const cat = getCategoryDetails(tool.category || tool.category_slug);
-                        return (
-                          <tr key={tool.id}>
-                            <td>
-                              <div className="tool-name-cell">
-                                <span className="tool-color-dot" style={{ background: tool.color || cat.color || '#8b5cf6' }}></span>
-                                <div>
-                                  <strong>{tool.name}</strong>
-                                  {tool.badge && <span className="tool-badge-small ml-2">{tool.badge}</span>}
+                      {filteredTools.length === 0 ? (
+                        <tr>
+                          <td colSpan="6" style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--text-muted)' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem' }}>
+                              <Boxes size={36} style={{ color: 'var(--text-muted)', opacity: 0.5 }} />
+                              <div style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-main)' }}>No Products Found</div>
+                              <p style={{ margin: 0, fontSize: '0.85rem' }}>
+                                {searchTerm ? `No tools match "${searchTerm}".` : 'No products found in this category.'}
+                              </p>
+                              <button className="btn btn-secondary btn-sm mt-1" onClick={() => { setSearchTerm(''); setSelectedCategoryFilter('all'); }}>
+                                Clear Filters
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ) : (
+                        filteredTools.map(tool => {
+                          const cat = getCategoryDetails(tool.category || tool.category_slug || tool.category_id);
+                          return (
+                            <tr key={tool.id}>
+                              <td>
+                                <div className="tool-name-cell">
+                                  <span className="tool-color-dot" style={{ background: tool.color || cat.color || '#8b5cf6' }}></span>
+                                  <div>
+                                    <strong>{tool.name}</strong>
+                                    {tool.badge && <span className="tool-badge-small ml-2">{tool.badge}</span>}
+                                  </div>
                                 </div>
-                              </div>
-                            </td>
-                            <td>
-                              <span 
-                                className="category-badge-chip"
-                                style={{ 
-                                  backgroundColor: `${cat.color}20`,
-                                  borderColor: `${cat.color}50`,
-                                  color: cat.color 
-                                }}
-                              >
-                                {cat.name}
-                              </span>
-                            </td>
-                            <td><strong>${tool.priceLifetime || tool.price_lifetime}</strong></td>
-                            <td>${tool.priceMonthly || tool.price_monthly}/mo</td>
-                            <td>
-                              {(tool.includedInSub ?? tool.included_in_sub) ? (
-                                <span className="text-success"><CheckCircle2 size={16} className="inline mr-1" /> Included</span>
-                              ) : (
-                                <span className="text-muted">Separate</span>
-                              )}
-                            </td>
-                            <td>★ {tool.rating}</td>
-                            <td>
-                              <span className={`status-pill ${(tool.status || 'Active').toLowerCase()}`}>
-                                {tool.status || 'Active'}
-                              </span>
-                            </td>
-                            <td>
-                              <div className="table-actions-group">
-                                <button
-                                  className="btn-table-action edit"
-                                  onClick={() => handleOpenEditTool(tool)}
-                                  title="Edit Product Details"
+                              </td>
+                              <td>
+                                <span 
+                                  className="category-badge-chip"
+                                  style={{ 
+                                    backgroundColor: `${cat.color}20`,
+                                    borderColor: `${cat.color}50`,
+                                    color: cat.color 
+                                  }}
                                 >
-                                  <Edit3 size={15} />
-                                </button>
-                                <button
-                                  className="btn-table-action delete"
-                                  onClick={() => handleDeleteTool(tool.id, tool.name)}
-                                  title="Delete Product"
-                                >
-                                  <Trash2 size={15} />
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })}
+                                  {cat.name}
+                                </span>
+                              </td>
+                              <td><strong>${tool.priceLifetime || tool.price_lifetime || tool.price || 199}</strong></td>
+                              <td>★ {tool.rating || '4.95'}</td>
+                              <td>
+                                <span className={`status-pill ${(tool.status || 'Active').toLowerCase()}`}>
+                                  {tool.status || 'Active'}
+                                </span>
+                              </td>
+                              <td>
+                                <div className="table-actions-group">
+                                  <button
+                                    className="btn-table-action edit"
+                                    onClick={() => handleOpenEditTool(tool)}
+                                    title="Edit Product Details"
+                                  >
+                                    <Edit3 size={15} />
+                                  </button>
+                                  <button
+                                    className="btn-table-action delete"
+                                    onClick={() => handleDeleteTool(tool.id, tool.name)}
+                                    title="Delete Product"
+                                  >
+                                    <Trash2 size={15} />
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
                     </tbody>
                   </table>
                 </div>
@@ -1290,49 +1385,6 @@ export default function AdminPanel({ onCloseAdmin, onLogout }) {
                     </div>
                   </div>
 
-                  {/* CARD 2: ABA PAYWAY FALLBACK */}
-                  <div className="settings-card mt-4">
-                    <div className="settings-card-header">
-                      <SmartphoneNfc size={20} className="text-cyan" />
-                      <h4>ABA PAY / PayWay Payment Gateway</h4>
-                    </div>
-
-                    <div className="form-group">
-                      <label>PayWay Payment Link (Checkout Redirect & QR):</label>
-                      <div className="input-with-action">
-                        <input
-                          type="url"
-                          required
-                          value={settings.abaPayLink}
-                          onChange={(e) => setSettings({ ...settings, abaPayLink: e.target.value })}
-                          placeholder="https://link.payway.com.kh/..."
-                        />
-                        <button
-                          type="button"
-                          className="btn-copy-input"
-                          onClick={handleCopyLink}
-                          title="Copy Link"
-                        >
-                          {copiedLink ? <Check size={16} className="text-success" /> : <Copy size={16} />}
-                        </button>
-                      </div>
-                      <span className="input-hint">
-                        Customers who choose "ABA PAY / PayWay" in checkout will be directed to this link or scan this link's QR code.
-                      </span>
-                    </div>
-
-                    <div className="aba-test-row">
-                      <a
-                        href={settings.abaPayLink}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="btn btn-secondary btn-sm"
-                      >
-                        <ExternalLink size={14} />
-                        <span>Test PayWay Link In New Tab</span>
-                      </a>
-                    </div>
-                  </div>
 
                   <div className="settings-card mt-4">
                     <div className="settings-card-header">

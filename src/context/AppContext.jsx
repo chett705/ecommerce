@@ -1,25 +1,73 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { TOOLS_DATA } from '../data/toolsData';
 
 const AppContext = createContext();
 
 export const CURRENCIES = {
-  USD: { symbol: '$', rate: 1.0, label: 'USD ($)' },
-  EUR: { symbol: '€', rate: 0.92, label: 'EUR (€)' },
-  GBP: { symbol: '£', rate: 0.79, label: 'GBP (£)' }
+  USD: { symbol: '$', rate: 1.0, label: 'USD ($)', code: 'USD' },
+  KHR: { symbol: '៛', rate: 4100, label: 'Riel (៛)', code: 'KHR' }
 };
 
 export function AppProvider({ children }) {
-  // Cart state
-  const [cart, setCart] = useState([
-    {
-      id: 'omni_llm',
-      name: 'Synapse Omni-LLM 4.5 (Commercial License)',
-      type: 'tool',
-      price: 199,
-      quantity: 1,
-      badge: 'Perpetual License'
+  // Cart state with localStorage persistence - defaults to EMPTY array (no hardcoded items)
+  const [cart, setCart] = useState(() => {
+    try {
+      const saved = localStorage.getItem('synapse_cart');
+      if (saved !== null) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch (e) {
+      console.warn('Could not load cart from localStorage', e);
     }
-  ]);
+    return [];
+  });
+
+  // Save cart changes to localStorage immediately
+  useEffect(() => {
+    try {
+      localStorage.setItem('synapse_cart', JSON.stringify(cart));
+    } catch (e) {
+      console.warn('Could not save cart to localStorage', e);
+    }
+  }, [cart]);
+
+  // Tools state with persistent database sync & localStorage cache
+  const [tools, setTools] = useState(() => {
+    try {
+      const saved = localStorage.getItem('synapse_custom_tools');
+      if (saved !== null) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch {}
+    return [];
+  });
+
+  const refreshTools = useCallback(async () => {
+    try {
+      const res = await fetch('/api/products');
+      if (res.ok) {
+        const data = await res.json();
+        const list = data.products || data.tools;
+        if (Array.isArray(list)) {
+          let deleted = [];
+          try {
+            deleted = JSON.parse(localStorage.getItem('synapse_deleted_tools') || '[]');
+          } catch {}
+          const filtered = list.filter(t => !deleted.includes(t.id) && !deleted.includes(t.slug) && !deleted.includes(t.product_id));
+          setTools(filtered);
+          localStorage.setItem('synapse_custom_tools', JSON.stringify(filtered));
+        }
+      }
+    } catch (e) {
+      // offline or server error fallback
+    }
+  }, []);
+
+  useEffect(() => {
+    refreshTools();
+  }, [refreshTools]);
 
   // Promo Code
   const [promoCode, setPromoCode] = useState('');
@@ -79,10 +127,16 @@ export function AppProvider({ children }) {
   ]);
 
   // Format currency helper
+  // Format currency helper - supports exact decimals (e.g. $2.10)
   const formatPrice = (usdAmount) => {
+    const num = Number(usdAmount) || 0;
     const cur = CURRENCIES[currency] || CURRENCIES.USD;
-    const converted = usdAmount * cur.rate;
-    return `${cur.symbol}${Math.round(converted).toLocaleString()}`;
+    const converted = num * cur.rate;
+    if (currency === 'KHR') {
+      return `${Math.round(converted).toLocaleString()} ៛`;
+    }
+    const formatted = num % 1 === 0 ? num.toLocaleString() : num.toFixed(2);
+    return `${cur.symbol}${formatted}`;
   };
 
   const addToast = (message, type = 'success') => {
@@ -97,29 +151,44 @@ export function AppProvider({ children }) {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   };
 
-  // Cart operations
+  // Cart operations with immediate synchronous localStorage sync
   const addToCart = (item) => {
     setCart((prev) => {
       const existing = prev.find((i) => i.id === item.id);
+      let updated;
       if (existing) {
         addToast(`Increased quantity for ${item.name}`, 'info');
-        return prev.map((i) =>
+        updated = prev.map((i) =>
           i.id === item.id ? { ...i, quantity: (i.quantity || 1) + 1 } : i
         );
+      } else {
+        addToast(`Added "${item.name}" to cart!`, 'success');
+        updated = [...prev, { ...item, quantity: 1 }];
       }
-      addToast(`Added "${item.name}" to cart!`, 'success');
-      return [...prev, { ...item, quantity: 1 }];
+      try {
+        localStorage.setItem('synapse_cart', JSON.stringify(updated));
+      } catch (e) {}
+      return updated;
     });
     setIsCartOpen(true);
   };
 
   const removeFromCart = (itemId) => {
-    setCart((prev) => prev.filter((i) => i.id !== itemId));
+    setCart((prev) => {
+      const updated = prev.filter((i) => i.id !== itemId);
+      try {
+        localStorage.setItem('synapse_cart', JSON.stringify(updated));
+      } catch (e) {}
+      return updated;
+    });
     addToast('Item removed from cart', 'info');
   };
 
   const clearCart = () => {
     setCart([]);
+    try {
+      localStorage.setItem('synapse_cart', JSON.stringify([]));
+    } catch (e) {}
   };
 
   // Promo code apply
@@ -209,7 +278,10 @@ export function AppProvider({ children }) {
         generateNewApiKey,
         revokeApiKey,
         purchasedLicenses,
-        setPurchasedLicenses
+        setPurchasedLicenses,
+        tools,
+        setTools,
+        refreshTools
       }}
     >
       {children}

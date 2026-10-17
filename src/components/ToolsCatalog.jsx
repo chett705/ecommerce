@@ -46,7 +46,15 @@ const CATEGORIES = [
 ];
 
 export default function ToolsCatalog({ searchRef }) {
-  const { addToCart, formatPrice, setSelectedToolModal } = useApp();
+  const { addToCart, formatPrice, setSelectedToolModal, tools: catalogTools } = useApp();
+  const sourceTools = useMemo(() => {
+    let deleted = [];
+    try {
+      deleted = JSON.parse(localStorage.getItem('synapse_deleted_tools') || '[]');
+    } catch {}
+    const list = Array.isArray(catalogTools) && catalogTools.length > 0 ? catalogTools : TOOLS_DATA;
+    return list.filter(t => !deleted.includes(t.id) && !deleted.includes(t.slug) && !deleted.includes(t.product_id));
+  }, [catalogTools]);
 
   const [activeCategory, setActiveCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -54,44 +62,44 @@ export default function ToolsCatalog({ searchRef }) {
   const [sortBy, setSortBy] = useState('popular'); // 'popular' | 'rating' | 'price-asc' | 'price-desc'
 
   const filteredTools = useMemo(() => {
-    return TOOLS_DATA.filter((tool) => {
+    return sourceTools.filter((tool) => {
       // Category filter
-      if (activeCategory !== 'all' && tool.category !== activeCategory) {
-        return false;
-      }
-      // Pricing filter
-      if (pricingFilter === 'subscription' && !tool.includedInSub) {
+      const toolCat = String(tool.category_slug || (typeof tool.category === 'object' ? tool.category?.slug : tool.category) || '').toLowerCase();
+      if (activeCategory !== 'all' && toolCat !== activeCategory) {
         return false;
       }
       // Search filter
       if (searchQuery.trim()) {
         const query = searchQuery.toLowerCase();
-        const matchesName = tool.name.toLowerCase().includes(query);
-        const matchesDesc = tool.shortDesc.toLowerCase().includes(query);
-        const matchesCap = tool.capabilities.some((c) => c.toLowerCase().includes(query));
-        const matchesBadge = tool.badge.toLowerCase().includes(query);
+        const matchesName = (tool.name || '').toLowerCase().includes(query);
+        const matchesDesc = (tool.shortDesc || tool.short_desc || tool.description || '').toLowerCase().includes(query);
+        const caps = Array.isArray(tool.capabilities) ? tool.capabilities : (typeof tool.capabilities === 'string' ? tool.capabilities.split(',') : []);
+        const matchesCap = caps.some((c) => String(c).toLowerCase().includes(query));
+        const matchesBadge = (tool.badge || '').toLowerCase().includes(query);
         if (!matchesName && !matchesDesc && !matchesCap && !matchesBadge) {
           return false;
         }
       }
       return true;
     }).sort((a, b) => {
-      if (sortBy === 'rating') return b.rating - a.rating;
-      if (sortBy === 'price-asc') return a.priceLifetime - b.priceLifetime;
-      if (sortBy === 'price-desc') return b.priceLifetime - a.priceLifetime;
-      return b.reviewsCount - a.reviewsCount; // default popular
+      const priceA = a.priceLifetime || a.price_lifetime || a.priceMonthly || a.price_monthly || 0;
+      const priceB = b.priceLifetime || b.price_lifetime || b.priceMonthly || b.price_monthly || 0;
+      if (sortBy === 'rating') return (b.rating || 0) - (a.rating || 0);
+      if (sortBy === 'price-asc') return priceA - priceB;
+      if (sortBy === 'price-desc') return priceB - priceA;
+      return (b.reviewsCount || b.reviews_count || 0) - (a.reviewsCount || a.reviews_count || 0);
     });
-  }, [activeCategory, searchQuery, pricingFilter, sortBy]);
+  }, [sourceTools, activeCategory, searchQuery, sortBy]);
 
-  const handleAddToolToCart = (tool, licenseType = 'lifetime') => {
-    const isPerpetual = licenseType === 'lifetime';
+  const handleAddToolToCart = (tool) => {
+    const price = tool.priceLifetime || tool.price_lifetime || tool.priceMonthly || tool.price_monthly || 0;
     addToCart({
-      id: `${tool.id}_${licenseType}`,
-      name: `${tool.name} (${isPerpetual ? 'Perpetual Lifetime License' : 'Monthly Access'})`,
+      id: `${tool.id}_license`,
+      name: `${tool.name} (Perpetual License)`,
       type: 'tool',
-      price: isPerpetual ? tool.priceLifetime : tool.priceMonthly,
+      price: price,
       toolId: tool.id,
-      badge: isPerpetual ? 'Lifetime License' : 'Monthly License'
+      badge: tool.badge || 'License'
     });
   };
 
@@ -203,7 +211,12 @@ export default function ToolsCatalog({ searchRef }) {
             {filteredTools.map((tool) => {
               const IconComponent = ICON_MAP[tool.icon] || Brain;
               return (
-                <div key={tool.id} className="tool-card">
+                <div 
+                  key={tool.id} 
+                  className="tool-card"
+                  onClick={() => setSelectedToolModal(tool)}
+                  style={{ cursor: 'pointer' }}
+                >
                   <div className="tool-card-glow" style={{ background: `radial-gradient(circle at 50% 0%, ${tool.color}25, transparent 70%)` }}></div>
                   
                   <div className="tool-card-top">
@@ -220,43 +233,45 @@ export default function ToolsCatalog({ searchRef }) {
                   <div className="tool-meta-row">
                     <span className="tool-rating">
                       <Star size={14} className="fill-warning text-warning" />
-                      <strong>{tool.rating}</strong> ({tool.reviewsCount.toLocaleString()})
+                      <strong>{tool.rating || 5.0}</strong> ({(tool.reviewsCount || tool.reviews_count || 100).toLocaleString()})
                     </span>
                     <span className="tool-users">
-                      <Zap size={13} className="text-accent" /> {tool.usersCount} Active Users
+                      <Zap size={13} className="text-accent" /> {tool.usersCount || tool.users_count || '1k+'} Active Users
                     </span>
                   </div>
 
-                  <p className="tool-description">{tool.shortDesc}</p>
+                  <p className="tool-description">{tool.shortDesc || tool.short_desc || tool.description || ''}</p>
 
                   <div className="tool-capabilities">
-                    {tool.capabilities.map((cap, idx) => (
+                    {(Array.isArray(tool.capabilities) ? tool.capabilities : (typeof tool.capabilities === 'string' ? tool.capabilities.split(',') : [])).map((cap, idx) => (
                       <span key={idx} className="capability-tag">
-                        <CheckCircle2 size={12} className="text-cyan mr-1" /> {cap}
+                        <CheckCircle2 size={12} className="text-cyan mr-1" /> {String(cap).trim()}
                       </span>
                     ))}
                   </div>
 
-                  {/* Included in Subscription Highlight Box */}
+                  {/* Production Ready API Highlight Badge */}
                   <div className="subscription-included-badge">
-                    <Zap size={14} className="text-warning fill-warning" />
-                    <span>Included with <strong>Pro AI Suite</strong> ($49/mo)</span>
+                    <Zap size={14} className="text-cyan fill-cyan" />
+                    <span>Verified <strong>Production-Ready API</strong> (Instant Deployment)</span>
                   </div>
 
                   {/* Price & Buy Action Footer */}
                   <div className="tool-card-footer">
                     <div className="tool-pricing-info">
                       <div className="tool-lifetime-price">
-                        {formatPrice(tool.priceLifetime)}
+                        {formatPrice(tool.priceLifetime || tool.price_lifetime || tool.priceMonthly || tool.price_monthly || 0)}
                         <span className="lifetime-label">perpetual license</span>
                       </div>
-                      <div className="tool-or-sub">or {formatPrice(tool.priceMonthly)}/month</div>
                     </div>
 
                     <div className="tool-actions-row">
                       <button
                         className="btn-icon-view"
-                        onClick={() => setSelectedToolModal(tool)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedToolModal(tool);
+                        }}
                         title="View API Docs & Details"
                       >
                         <Eye size={16} />
@@ -264,7 +279,10 @@ export default function ToolsCatalog({ searchRef }) {
 
                       <button
                         className="btn btn-primary btn-sm btn-glow"
-                        onClick={() => handleAddToolToCart(tool, 'lifetime')}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleAddToolToCart(tool, 'lifetime');
+                        }}
                       >
                         <ShoppingCart size={15} />
                         <span>Buy License</span>

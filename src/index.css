@@ -541,20 +541,32 @@ a {
 }
 
 .currency-picker select {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid var(--border-light);
-  color: var(--text-main);
-  padding: 0.45rem 0.65rem;
-  border-radius: var(--radius-sm);
-  font-size: 0.85rem;
-  font-weight: 500;
+  background: #0f172a !important;
+  border: 1px solid rgba(255, 255, 255, 0.18) !important;
+  color: #f8fafc !important;
+  padding: 0.42rem 0.75rem !important;
+  border-radius: var(--radius-sm) !important;
+  font-size: 0.84rem !important;
+  font-weight: 600 !important;
   cursor: pointer;
   outline: none;
-  white-space: nowrap;
+  white-space: nowrap !important;
+  transition: all var(--transition-fast);
 }
 
-.currency-picker select:hover {
-  border-color: rgba(255, 255, 255, 0.2);
+.currency-picker select:hover,
+.currency-picker select:focus {
+  border-color: rgba(56, 189, 248, 0.6) !important;
+  background: #1e293b !important;
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.2);
+}
+
+.currency-picker select option {
+  background-color: #0b0f19 !important;
+  color: #f8fafc !important;
+  padding: 0.6rem 0.8rem !important;
+  font-size: 0.86rem !important;
+  font-weight: 600 !important;
 }
 
 .search-trigger-btn {
@@ -4408,69 +4420,262 @@ input:checked+.slider:before {
   font-size: 0.95rem;
 }
 
-/* KPI Cards Grid */
+/* KPI & Telemetry Cards Grid */
+.admin-metrics-grid,
 .admin-kpi-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
-  gap: 1.4rem;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1.5rem;
   margin-bottom: 2rem;
 }
 
+.admin-metric-card,
 .kpi-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border-light);
-  border-radius: var(--radius-lg);
-  padding: 1.4rem;
+  position: relative;
+  background: linear-gradient(145deg, rgba(17, 24, 39, 0.85) 0%, rgba(11, 15, 26, 0.95) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 1.6rem;
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
 }
 
+.admin-metric-card::before,
+.kpi-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  opacity: 0.8;
+}
+
+.metric-card-revenue::before {
+  background: linear-gradient(90deg, #10b981, #059669);
+}
+
+.metric-card-products::before {
+  background: linear-gradient(90deg, #8b5cf6, #6366f1);
+}
+
+.metric-card-categories::before {
+  background: linear-gradient(90deg, #ec4899, #d946ef);
+}
+
+.metric-card-khqr::before {
+  background: linear-gradient(90deg, #06b6d4, #0284c7);
+}
+
+.admin-metric-card:hover,
+.kpi-card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(255, 255, 255, 0.16);
+  box-shadow: 0 20px 35px -10px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.admin-metric-card .metric-header,
 .kpi-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 0.82rem;
-  color: var(--text-muted);
-  margin-bottom: 0.75rem;
+  margin-bottom: 1.1rem;
 }
 
-.kpi-icon {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
+.admin-metric-card .metric-header span {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  letter-spacing: 0.02em;
+}
+
+.admin-metric-card .metric-icon-wrap {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  flex-shrink: 0;
 }
 
-.kpi-icon.violet {
-  background: rgba(139, 92, 246, 0.15);
-  color: #c4b5fd;
+.admin-metric-card .metric-icon-wrap.icon-revenue {
+  background: rgba(16, 185, 129, 0.12);
+  color: #34d399;
+  border-color: rgba(16, 185, 129, 0.25);
 }
 
-.kpi-icon.blue {
-  background: rgba(0, 159, 227, 0.15);
-  color: #38bdf8;
+.admin-metric-card .metric-icon-wrap.icon-products {
+  background: rgba(139, 92, 246, 0.12);
+  color: #a78bfa;
+  border-color: rgba(139, 92, 246, 0.25);
 }
 
-.kpi-icon.emerald {
-  background: rgba(16, 185, 129, 0.15);
-  color: #6ee7b7;
+.admin-metric-card .metric-icon-wrap.icon-categories {
+  background: rgba(236, 72, 153, 0.12);
+  color: #f472b6;
+  border-color: rgba(236, 72, 153, 0.25);
 }
 
-.kpi-icon.amber {
-  background: rgba(245, 158, 11, 0.15);
-  color: #fcd34d;
+.admin-metric-card .metric-icon-wrap.icon-khqr {
+  background: rgba(6, 182, 212, 0.12);
+  color: #22d3ee;
+  border-color: rgba(6, 182, 212, 0.25);
 }
 
+.admin-metric-card .metric-val,
 .kpi-value {
   font-family: var(--font-heading);
-  font-size: 1.95rem;
+  font-size: 2.15rem;
   font-weight: 800;
-  margin-bottom: 0.35rem;
+  color: #f8fafc;
+  line-height: 1.15;
+  margin-bottom: 0.65rem;
+  letter-spacing: -0.02em;
 }
 
-.kpi-trend {
-  font-size: 0.78rem;
-  font-weight: 500;
+.admin-metric-card .metric-trend {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.25rem 0.65rem;
+  border-radius: 20px;
+}
+
+.admin-metric-card .metric-trend.up {
+  color: #34d399;
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.admin-metric-card .metric-trend.info {
+  color: #94a3b8;
+  background: rgba(148, 163, 184, 0.08);
+  border: 1px solid rgba(148, 163, 184, 0.15);
+}
+
+/* System Architecture Strip */
+.admin-system-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+  background: rgba(13, 18, 30, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 14px;
+  padding: 1.1rem 1.4rem;
+}
+
+.system-strip-item {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.system-strip-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.system-strip-dot.online {
+  background: #10b981;
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.6);
+}
+
+.system-strip-title {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #f1f5f9;
+}
+
+.system-strip-sub {
+  font-size: 0.76rem;
+  color: var(--text-muted);
+}
+
+/* Admin Card Sections & Transactions */
+.admin-card-section {
+  background: linear-gradient(145deg, rgba(17, 24, 39, 0.8) 0%, rgba(11, 15, 26, 0.95) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 1.6rem;
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+}
+
+.card-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.4rem;
+}
+
+.card-section-header h3 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #f8fafc;
+  margin-bottom: 0.2rem;
+}
+
+.card-section-sub {
+  font-size: 0.84rem;
+  color: var(--text-muted);
+}
+
+.order-code-badge {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  padding: 0.25rem 0.55rem;
+  background: rgba(6, 182, 212, 0.1);
+  color: #38bdf8;
+  border: 1px solid rgba(6, 182, 212, 0.2);
+  border-radius: 6px;
+}
+
+.customer-cell-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.customer-avatar-mini {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: #fff;
+  font-size: 0.82rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.gateway-khqr-tag {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #f43f5e;
+  background: rgba(244, 63, 94, 0.12);
+  border: 1px solid rgba(244, 63, 94, 0.25);
+  padding: 0.25rem 0.6rem;
+  border-radius: 6px;
+}
+
+.status-dot-mini {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  display: inline-block;
+  margin-right: 0.35rem;
 }
 
 /* Admin Sections & Tables */

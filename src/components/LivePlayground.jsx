@@ -350,6 +350,7 @@ Generated with temperature ${creativity} and ${copyTone} tone:
 
   return (
     <section className="playground-section" id="playground">
+      <div id="sandbox" style={{ position: 'relative', top: '-80px', visibility: 'hidden' }}></div>
       <div className="container">
         <div className="section-header text-center">
           <span className="section-tag">

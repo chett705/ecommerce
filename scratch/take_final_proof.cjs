@@ -1,92 +1,106 @@
 const { spawn } = require('child_process');
-const fs = require('fs');
 const path = require('path');
 const os = require('os');
+const fs = require('fs');
 
-async function test() {
-  const tmpDir = path.join(os.tmpdir(), 'chrome_proof_' + Date.now());
+const artifactDir = 'C:\\Users\\Asus\\.gemini\\antigravity-ide\\brain\\c0f320dc-04f5-4178-86fe-7243d3bade14';
+
+async function testScreens() {
+  const tmpDir = path.join(os.tmpdir(), 'chrome_snap_real_' + Date.now());
+  const port = 9572;
   const chrome = spawn('C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe', [
-    '--remote-debugging-port=9411',
+    `--remote-debugging-port=${port}`,
     '--headless=new',
-    '--user-data-dir=' + tmpDir,
-    '--window-size=1200,900'
+    `--user-data-dir=${tmpDir}`,
+    '--window-size=1440,900',
+    '--disable-extensions'
   ]);
-  
-  await new Promise(r => setTimeout(r, 2000));
-  const res = await fetch('http://127.0.0.1:9411/json/list');
-  const [p] = await res.json();
-  const ws = new WebSocket(p.webSocketDebuggerUrl);
-  let id = 1;
-  const cb = new Map();
-  ws.onmessage = e => {
-    const m = JSON.parse(e.data);
-    if (m.id && cb.has(m.id)) { cb.get(m.id)(m); cb.delete(m.id); }
-  };
-  await new Promise(r => ws.onopen = r);
-  const send = (m, params = {}) => new Promise(r => { const mid = id++; cb.set(mid, r); ws.send(JSON.stringify({ id: mid, method: m, params })); });
-  await send('Page.enable');
-  await send('Runtime.enable');
 
-  await send('Page.navigate', { url: 'http://localhost:5173' });
-  await new Promise(r => setTimeout(r, 2500));
+  try {
+    let p = null;
+    for (let i = 0; i < 20; i++) {
+      try {
+        const res = await fetch(`http://127.0.0.1:${port}/json/list`);
+        if (res.ok) {
+          const list = await res.json();
+          p = list.find(x => x.type === 'page' && x.webSocketDebuggerUrl);
+          if (p) break;
+        }
+      } catch (e) {}
+      await new Promise(r => setTimeout(r, 250));
+    }
 
-  // 1. Verify Homepage Navbar and Pricing
-  const homeCheck = await send('Runtime.evaluate', {
-    expression: `(function() {
-      const navLinks = Array.from(document.querySelectorAll('.nav-link, .nav-cta')).map(a => a.innerText.trim());
-      const hasPricingSection = !!document.getElementById('pricing');
-      const heroTitle = document.querySelector('.hero-title')?.innerText.trim();
-      return { navLinks, hasPricingSection, heroTitle };
-    })()`,
-    returnByValue: true
-  });
-  console.log('Homepage verification:', JSON.stringify(homeCheck.result?.result?.value, null, 2));
+    const ws = new WebSocket(p.webSocketDebuggerUrl);
+    let id = 1;
+    const cb = new Map();
+    ws.onmessage = e => {
+      const m = JSON.parse(e.data);
+      if (m.id && cb.has(m.id)) { cb.get(m.id)(m); cb.delete(m.id); }
+    };
+    await new Promise(r => ws.onopen = r);
+    const send = (m, params = {}) => new Promise(r => { const mid = id++; cb.set(mid, r); ws.send(JSON.stringify({ id: mid, method: m, params })); });
 
-  // Screenshot homepage header
-  const ssNav = await send('Page.captureScreenshot', { format: 'png' });
-  fs.writeFileSync(path.join(__dirname, 'final_nav_hero.png'), Buffer.from(ssNav.result.data, 'base64'));
+    await send('Page.enable');
+    await send('Runtime.enable');
+    await send('Page.navigate', { url: 'http://localhost:5173' });
+    await new Promise(r => setTimeout(r, 1500));
 
-  // Open checkout via window.__openCheckout(true)
-  await send('Runtime.evaluate', {
-    expression: 'window.__openCheckout(true)'
-  });
-  await new Promise(r => setTimeout(r, 1200));
+    // 1. Clear session and click Sign In button in navbar
+    await send('Runtime.evaluate', {
+      expression: `(function() {
+        localStorage.removeItem('synapse_user');
+        localStorage.removeItem('synapse_token');
+        location.reload();
+      })()`
+    });
+    await new Promise(r => setTimeout(r, 2000));
 
-  // Step 1: Click "Continue to Payment"
-  await send('Runtime.evaluate', {
-    expression: 'document.querySelector(".checkout-actions button[type=submit]")?.click()'
-  });
-  await new Promise(r => setTimeout(r, 3500));
+    await send('Runtime.evaluate', {
+      expression: `document.querySelector('.btn-signin-nav')?.click()`
+    });
+    await new Promise(r => setTimeout(r, 1000));
 
-  // Verify Step 2 DOM state
-  const step2Info = await send('Runtime.evaluate', {
-    expression: `(function() {
-      const tabs = Array.from(document.querySelectorAll('.payment-tab')).map(t => t.innerText.replace(/\\n/g, ' '));
-      const iframe = document.querySelector('iframe.khqr-live-iframe')?.src;
-      const subtitle = document.querySelector('.step-sub')?.innerText;
-      const khqrBtn = document.getElementById('btn-pay-now-khqr')?.innerText;
-      const hasPaywayBtn = !!document.getElementById('btn-pay-now-payway');
-      const hasPaywayCard = !!document.querySelector('.aba-pay-card');
-      return {
-        tabs,
-        iframeSrc: iframe,
-        subtitle,
-        khqrBtn,
-        hasPaywayBtn,
-        hasPaywayCard
-      };
-    })()`,
-    returnByValue: true
-  });
-  console.log('Step 2 Final DOM State:\n', JSON.stringify(step2Info.result?.result?.value, null, 2));
+    let snap = await send('Page.captureScreenshot', { format: 'png' });
+    fs.writeFileSync(path.join(artifactDir, 'login_modal_clean_verified.png'), Buffer.from(snap.result.data, 'base64'));
+    console.log('1. Saved login modal screenshot!');
 
-  // Capture Step 2 screenshot
-  const ssStep2 = await send('Page.captureScreenshot', { format: 'png' });
-  fs.writeFileSync(path.join(__dirname, 'final_step2_verified.png'), Buffer.from(ssStep2.result.data, 'base64'));
+    // 2. Set admin user in localStorage and reload
+    await send('Runtime.evaluate', {
+      expression: `(function() {
+        localStorage.setItem('synapse_user', JSON.stringify({
+          id: 1,
+          name: 'Chief Admin',
+          email: 'admin@synapse.ai',
+          role: 'admin'
+        }));
+        location.reload();
+      })()`
+    });
+    await new Promise(r => setTimeout(r, 2500));
 
-  ws.close();
-  chrome.kill();
-  try { fs.rmSync(tmpDir, { recursive: true, force: true }); } catch (e) {}
+    // 3. Click Admin Panel button in navbar
+    const clickAdmin = await send('Runtime.evaluate', {
+      expression: `(function() {
+        const btn = document.querySelector('.btn-admin-nav');
+        if (btn) {
+          btn.click();
+          return 'CLICKED';
+        }
+        return 'NOT_FOUND';
+      })()`,
+      returnByValue: true
+    });
+    console.log('2. Click admin button:', clickAdmin.result?.result?.value);
+    await new Promise(r => setTimeout(r, 1500));
+
+    snap = await send('Page.captureScreenshot', { format: 'png' });
+    fs.writeFileSync(path.join(artifactDir, 'admin_dashboard_redesigned_verified.png'), Buffer.from(snap.result.data, 'base64'));
+    console.log('3. Saved redesigned dashboard screenshot!');
+
+    ws.close();
+  } finally {
+    chrome.kill();
+  }
 }
 
-test().catch(console.error);
+testScreens().catch(console.error);
