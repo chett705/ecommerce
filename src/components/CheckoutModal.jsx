@@ -65,7 +65,6 @@ export default function CheckoutModal() {
   const [cardCVC, setCardCVC] = useState('889');
 
   const [issuedApiKey, setIssuedApiKey] = useState('');
-  const [keyCopied, setKeyCopied] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
 
 
@@ -283,13 +282,6 @@ export default function CheckoutModal() {
       clearCart();
       addToast('🎉 Order confirmed & license activated!', 'success');
     }, 1000);
-  };
-
-  const handleCopyKey = () => {
-    navigator.clipboard.writeText(issuedApiKey);
-    setKeyCopied(true);
-    setTimeout(() => setKeyCopied(false), 2000);
-    addToast('API Key copied to clipboard!', 'info');
   };
 
   const handleDownloadReceipt = () => {
@@ -877,30 +869,6 @@ Thank you for building with SYNAPSE.AI!
                 </div>
               )}
 
-              <div className="license-box">
-                <div className="license-header">
-                  <span>
-                    <Sparkles size={14} className="inline mr-1 text-cyan" />
-                    YOUR LIVE PRODUCTION API KEY
-                  </span>
-                  <span className="status-live-tag">ACTIVE</span>
-                </div>
-
-                <div className="api-key-display">
-                  <code>{issuedApiKey}</code>
-                  <button
-                    className="btn-copy-key"
-                    onClick={handleCopyKey}
-                    title="Copy API Key"
-                  >
-                    {keyCopied ? <Check size={16} className="text-success" /> : <Copy size={16} />}
-                  </button>
-                </div>
-
-                <p className="license-hint">
-                  Keep this key secret. You can generate additional keys anytime in your dashboard.
-                </p>
-              </div>
 
               <div className="success-actions">
                 <button
