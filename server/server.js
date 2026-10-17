@@ -116,13 +116,66 @@ app.put('/api/settings', (req, res) => {
   res.json({ success: true, message: 'Settings updated successfully', settings: db.settings });
 });
 
-// AI Tools Catalog CRUD
-app.get('/api/tools', (req, res) => {
+// Categories API
+const DEFAULT_CATEGORIES = [
+  { id: 1, name: 'LLM & Reasoning', slug: 'llm', color: '#8b5cf6', icon: 'Brain', badge: 'Flagship', display_order: 1 },
+  { id: 2, name: 'Vision & Diffusion', slug: 'vision', color: '#ec4899', icon: 'Sparkles', badge: 'Generative', display_order: 2 },
+  { id: 3, name: 'Autonomous Coding', slug: 'code', color: '#06b6d4', icon: 'Cpu', badge: 'Developer', display_order: 3 },
+  { id: 4, name: 'Voice & Audio DSP', slug: 'audio', color: '#10b981', icon: 'Sliders', badge: 'Realtime', display_order: 4 },
+  { id: 5, name: 'Neural SEO & Data', slug: 'data', color: '#f43f5e', icon: 'TrendingUp', badge: 'Enterprise', display_order: 5 }
+];
+
+app.get('/api/categories', (req, res) => {
   const db = readDB();
-  res.json({ success: true, tools: db.tools });
+  const categories = (db.categories && db.categories.length > 0) ? db.categories : DEFAULT_CATEGORIES;
+  res.json({ success: true, categories });
 });
 
-app.post('/api/tools', (req, res) => {
+app.post('/api/categories', (req, res) => {
+  const db = readDB();
+  if (!db.categories || db.categories.length === 0) db.categories = [...DEFAULT_CATEGORIES];
+  const newCat = {
+    id: Date.now(),
+    name: req.body.name || 'New Category',
+    slug: req.body.slug || `cat_${Date.now()}`,
+    description: req.body.description || '',
+    icon: req.body.icon || 'Boxes',
+    color: req.body.color || '#8b5cf6',
+    badge: req.body.badge || 'New',
+    display_order: req.body.display_order || (db.categories.length + 1)
+  };
+  db.categories.push(newCat);
+  writeDB(db);
+  res.status(201).json({ success: true, category: newCat });
+});
+
+app.put('/api/categories/:id', (req, res) => {
+  const db = readDB();
+  if (!db.categories || db.categories.length === 0) db.categories = [...DEFAULT_CATEGORIES];
+  const idx = db.categories.findIndex(c => String(c.id) === String(req.params.id));
+  if (idx === -1) return res.status(404).json({ success: false, message: 'Category not found' });
+  db.categories[idx] = { ...db.categories[idx], ...req.body };
+  writeDB(db);
+  res.json({ success: true, category: db.categories[idx] });
+});
+
+app.delete('/api/categories/:id', (req, res) => {
+  const db = readDB();
+  if (!db.categories || db.categories.length === 0) db.categories = [...DEFAULT_CATEGORIES];
+  db.categories = db.categories.filter(c => String(c.id) !== String(req.params.id));
+  writeDB(db);
+  res.json({ success: true, message: 'Category deleted successfully' });
+});
+
+// Products / Tools Catalog CRUD (Supports both /api/products and /api/tools)
+const handleGetTools = (req, res) => {
+  const db = readDB();
+  res.json({ success: true, products: db.tools, tools: db.tools });
+};
+app.get('/api/products', handleGetTools);
+app.get('/api/tools', handleGetTools);
+
+const handleCreateTool = (req, res) => {
   const db = readDB();
   const newTool = {
     id: req.body.id || `tool_${Date.now()}`,
@@ -146,31 +199,37 @@ app.post('/api/tools', (req, res) => {
 
   db.tools.unshift(newTool);
   writeDB(db);
-  res.status(201).json({ success: true, tool: newTool });
-});
+  res.status(201).json({ success: true, product: newTool, tool: newTool });
+};
+app.post('/api/products', handleCreateTool);
+app.post('/api/tools', handleCreateTool);
 
-app.put('/api/tools/:id', (req, res) => {
+const handleUpdateTool = (req, res) => {
   const db = readDB();
-  const toolIndex = db.tools.findIndex(t => t.id === req.params.id);
+  const toolIndex = db.tools.findIndex(t => String(t.id) === String(req.params.id));
   if (toolIndex === -1) {
     return res.status(404).json({ success: false, message: 'Tool not found' });
   }
 
   db.tools[toolIndex] = { ...db.tools[toolIndex], ...req.body };
   writeDB(db);
-  res.json({ success: true, tool: db.tools[toolIndex] });
-});
+  res.json({ success: true, product: db.tools[toolIndex], tool: db.tools[toolIndex] });
+};
+app.put('/api/products/:id', handleUpdateTool);
+app.put('/api/tools/:id', handleUpdateTool);
 
-app.delete('/api/tools/:id', (req, res) => {
+const handleDeleteTool = (req, res) => {
   const db = readDB();
   const initialLength = db.tools.length;
-  db.tools = db.tools.filter(t => t.id !== req.params.id);
+  db.tools = db.tools.filter(t => String(t.id) !== String(req.params.id));
   if (db.tools.length === initialLength) {
     return res.status(404).json({ success: false, message: 'Tool not found' });
   }
   writeDB(db);
   res.json({ success: true, message: 'Tool deleted successfully' });
-});
+};
+app.delete('/api/products/:id', handleDeleteTool);
+app.delete('/api/tools/:id', handleDeleteTool);
 
 // Orders & Payments Management
 app.get('/api/orders', (req, res) => {
